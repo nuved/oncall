@@ -42,6 +42,8 @@ test('from_time and to_time for "Continue escalation if current UTC time is in r
   await page.reload();
   await page.waitForLoadState('networkidle');
 
-  await expect(_getFromTimeInput()).toHaveValue(FROM_TIME);
-  await expect(_getToTimeInput()).toHaveValue(TO_TIME);
+  // Grafana 13 repopulates the pickers well after networkidle on a 2-core runner; the trace of a
+  // failed run shows both values present, just later than the default 5 s expect window.
+  await expect(_getFromTimeInput()).toHaveValue(FROM_TIME, { timeout: 20_000 });
+  await expect(_getToTimeInput()).toHaveValue(TO_TIME, { timeout: 20_000 });
 });
