@@ -3,7 +3,7 @@ name: Publish release
 # Pushing a tag such as v1.17.0 builds the engine image for amd64 and arm64,
 # publishes it to GHCR, builds the plugin archive, and creates the GitHub
 # release with the archive attached. An annotated tag's message becomes the
-# release codename, e.g. `git tag -a v1.17.0 -m "Mansour"`.
+# release codename, e.g. `git tag -a v1.17.0 -m "Mansoor"`.
 
 on:
   push:
@@ -158,4 +158,9 @@ jobs:
             echo "Run the hobby stack at this version with \`ONCALL_VERSION=$version docker compose up -d\`."
             echo
           } > notes.md
-          gh release create "$tag" --title "$title" --notes-file notes.md --generate-notes assets/*
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "$title" --notes-file notes.md
+            gh release upload "$tag" --clobber assets/*
+          else
+            gh release create "$tag" --title "$title" --notes-file notes.md --generate-notes assets/*
+          fi

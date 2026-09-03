@@ -1,0 +1,27 @@
+# Backlog — OnCall fork (codename Mansoor)      drafted-by: fable · 2026-09-03
+
+## Picker
+
+priority asc → unblocks desc → retires-an-unknown desc → est_min asc → id asc · hard-core never auto-picked
+
+## Approved
+
+| id | title | class | priority | value | bet | why_plain | ui_surface | est_min | owned_files | depends_on | acceptance check | approved_by |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+## Proposed
+
+| id | title | class | priority | value | bet | why_plain | ui_surface | est_min | owned_files | depends_on | acceptance check | approved_by |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T-01 | Make tests.yml green on dev with e2e on Grafana 12.4.8 and 13.2.1 | standard | 1 | risk | B-01 | Anyone upgrading Grafana can trust that on-call paging still works, because the whole suite passed on that version. | no | 120 | .github/workflows/**, helm/oncall/values.yaml, dev/helm-local.yml | — | latest tests.yml run on dev: conclusion success | |
+| T-02 | Weekly scheduled compatibility run against grafana:latest and grafana:main | mechanical | 2 | risk | B-01 | The maintainer learns about a breaking Grafana release from a red weekly run instead of from an outage. | no | 45 | .github/workflows/scheduled-compatibility.yml | T-01 | one completed scheduled run visible in Actions | |
+| T-03 | Cherry-pick appwrite's install-flow security fixes (8f1f8292, 6c01383a, a311a2e3) | standard | 1 | risk | B-03 | Self-hosted installs stop trusting an install token or Grafana URL that an attacker could supply. | no | 90 | grafana-plugin/pkg/**, engine/apps/grafana_plugin/** | T-01 | go test and pytest for grafana_plugin green; plugin connects on a fresh dev stack | |
+| T-04 | Verify the Insights page on Grafana 13 with the local Prometheus profile | standard | 3 | retention | B-01 | Teams keep their alert-volume and response-time dashboards after upgrading Grafana. | yes | 60 | grafana-plugin/src/pages/insights/** | — | screenshot of populated panels; no console error | |
+| T-05 | Upgrade the Twilio SDK from 6.37.0 to current 9.x | standard | 2 | risk | B-02 | Phone and SMS alerting stops depending on a six-year-old library with no security fixes. | no | 120 | engine/requirements.in, engine/requirements.txt, engine/apps/twilioapp/** | — | pytest for twilioapp and phone_notifications green in tests.yml | |
+| T-06 | Real Twilio call and SMS verified from a dev stack | standard | 2 | retention | B-02 | An on-call engineer really gets the phone call and can acknowledge the alert by pressing a key. | no | 120 | docs/venture/LEDGER.md | T-05, human: Twilio credentials and number | alert timeline shows acknowledgement by phone; SMS received | |
+| T-07 | Document Twilio setup for this fork's OSS install | mechanical | 3 | retention | B-02 | An operator can enable phone alerts in one sitting without reading the engine's settings source. | no | 45 | docs/sources/set-up/open-source/index.md | T-06 | markdownlint passes; page lists every required variable | |
+| T-08 | Django 5.2 LTS via appwrite's commits (ef45a066, c0d7242f, d48acbd8) | standard | 2 | risk | B-03 | The engine returns to a framework version that still receives security fixes. | no | 180 | engine/requirements*.txt, engine/requirements*.in, engine/settings/**, engine/apps/**/migrations/** | T-01, T-03 | all backend jobs in tests.yml green; django 5.2 in requirements | |
+| T-09 | Move dev compose and CI databases to supported versions (MySQL 8.4, PostgreSQL 17, Redis 8, RabbitMQ 4) | mechanical | 3 | risk | B-03 | Developers and CI test against the database versions a new production install would actually run. | no | 60 | docker-compose-developer.yml, docker-compose-mysql-rabbitmq.yml, .github/workflows/linting-and-tests.yml | T-08 | tests.yml green with the new images | |
+| T-10 | Pin the remaining Bitnami subcharts (postgresql, rabbitmq, redis) to bitnamilegacy tags | mechanical | 3 | risk | B-01 | A Helm install keeps working after Bitnami deletes the image tags the chart still points at. | no | 45 | helm/oncall/values.yaml, helm/oncall/tests/** | — | helm unittest green; helm template shows bitnamilegacy images | |
+| T-11 | Declare packageManager pnpm 9.1.4 in package.json | mechanical | 4 | velocity | B-01 | A developer with a newer pnpm no longer rewrites the lockfile that CI refuses. | no | 20 | grafana-plugin/package.json | — | `pnpm install --frozen-lockfile` succeeds with corepack-selected pnpm | |
+| T-12 | Compile the plugin against @grafana/* 13.2.x | standard | 4 | debt | B-01 | Type errors surface at build time instead of at runtime when Grafana removes an API the plugin still calls. | no | 240 | grafana-plugin/package.json, grafana-plugin/pnpm-lock.yaml, grafana-plugin/src/** | T-01 | type-check, build, react-detect and e2e green | |

@@ -8,3 +8,6 @@ venv
 .env
 
 CHANGELOG.md
+
+# fixed-width weekly summaries generated from docs/venture/LEDGER.md rows
+docs/venture/reports

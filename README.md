@@ -41,7 +41,7 @@ make install-git-hooks  # run `make unit-test` automatically before every `git p
 Push an annotated tag; its message is the release codename:
 
 ```bash
-git tag -a v1.17.0 -m "Mansour" && git push origin v1.17.0
+git tag -a v1.17.0 -m "Mansoor" && git push origin v1.17.0
 ```
 
 [publish.yml](.github/workflows/publish.yml) builds and pushes the engine image, builds the plugin archive, and
