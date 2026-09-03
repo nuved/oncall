@@ -58,7 +58,7 @@ export function throttlingError(response: Response) {
     // TODO: check if it works ok
     if (response?.statusText === '') {
       openErrorNotification(
-        'Grafana OnCall is unable to verify your phone number due to incorrect number or verification service being unavailable.'
+        'Mansoor OnCall is unable to verify your phone number due to incorrect number or verification service being unavailable.'
       );
     } else {
       openErrorNotification(response?.statusText);

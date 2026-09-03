@@ -1,11 +1,12 @@
-# Grafana OnCall (community fork)
+# Mansoor OnCall
 
 [![Tests](https://github.com/nuved/oncall/actions/workflows/tests.yml/badge.svg?branch=dev)](https://github.com/nuved/oncall/actions/workflows/tests.yml)
 [![Release](https://img.shields.io/github/v/release/nuved/oncall?display_name=tag&sort=semver)](https://github.com/nuved/oncall/releases)
 
 Grafana Labs put [OnCall OSS](https://github.com/grafana/oncall) into maintenance mode on 2025-03-11 and archived
-it on 2026-03-24 at v1.16.11. This fork ([nuved/oncall](https://github.com/nuved/oncall)) keeps it running on
-current Grafana releases.
+it on 2026-03-24 at v1.16.11. Mansoor OnCall ([nuved/oncall](https://github.com/nuved/oncall)) is a fork that
+keeps it running on current Grafana releases. It is licensed under the AGPL-3.0 like the original. Grafana is a
+trademark of Grafana Labs, which does not maintain or endorse this fork.
 
 What changed relative to the archived upstream:
 
@@ -50,14 +51,14 @@ creates the GitHub release with the archive attached. Bump `ONCALL_VERSION` defa
 
 Grafana Labs' supported alternative is [Grafana Cloud IRM](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/).
 
-## Grafana OnCall
+## What it is
 
 <img width="240px" src="docs/img/logo.svg" alt="Agha Mansoor, drawn as an on-call avatar">
 
 *In memory of Agha Mansoor, who taught me to stay curious and gave me the room to discover.*
 
 [![Latest Release](https://img.shields.io/github/v/release/grafana/oncall?display_name=tag&sort=semver)](https://github.com/grafana/oncall/releases)
-[![License](https://img.shields.io/github/license/grafana/oncall)](https://github.com/grafana/oncall/blob/dev/LICENSE)
+[![License](https://img.shields.io/github/license/nuved/oncall)](https://github.com/nuved/oncall/blob/dev/LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/grafana/oncall)](https://hub.docker.com/r/grafana/oncall/tags)
 [![Slack](https://img.shields.io/badge/join%20slack-%23grafana-%2Doncall-brightgreen.svg)](https://slack.grafana.com/)
 [![Build Status](https://github.com/grafana/oncall/actions/workflows/on-commits-to-dev.yml/badge.svg)](https://github.com/grafana/oncall/actions/workflows/on-commits-to-dev.yml)

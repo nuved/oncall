@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "app",
-  "name": "Grafana OnCall",
+  "name": "Mansoor OnCall",
   "id": "grafana-oncall-app",
   "preload": true,
   "backend": true,
@@ -20,11 +20,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/grafana/oncall"
+        "url": "https://github.com/nuved/oncall"
       },
       {
         "name": "License",
-        "url": "https://github.com/grafana/oncall/blob/main/LICENSE"
+        "url": "https://github.com/nuved/oncall/blob/dev/LICENSE"
       }
     ],
     "screenshots": [{ "name": "Escalation chain", "path": "assets/img/screenshot.png" }],

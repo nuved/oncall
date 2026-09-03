@@ -49,7 +49,7 @@ export const PluginConfigPage = observer((props: PluginConfigPageProps<PluginMet
           margin-bottom: 12px;
         `}
       >
-        Configure Grafana OnCall
+        Configure Mansoor OnCall
       </Text.Title>
       {IS_CURRENT_ENV_CLOUD ? <CloudPluginConfigPage {...props} /> : <OSSPluginConfigPage {...props} />}
     </Stack>
@@ -263,7 +263,7 @@ const PluginConfigAlert = observer(() => {
       <Alert severity="success" title="Plugin is connected">
         Go to{' '}
         <a href={PLUGIN_ROOT} rel="noreferrer">
-          <Text type="link">Grafana OnCall</Text>
+          <Text type="link">Mansoor OnCall</Text>
         </a>
       </Alert>
     );

@@ -20,7 +20,7 @@ export const Header = observer(() => {
         <div className={cx('page-header__inner', styles.headerTopNavbar)}>
           <div className={styles.navbarLeft}>
             <span className={cx('page-header__logo', styles.logoContainer)}>
-              <img className={styles.pageHeaderImage} src={logo} alt="Grafana OnCall" />
+              <img className={styles.pageHeaderImage} src={logo} alt="Mansoor OnCall" />
             </span>
             <div className={cx('page-header__info-block')}>{renderHeading()}</div>
           </div>
@@ -34,13 +34,13 @@ export const Header = observer(() => {
     if (IS_CURRENT_ENV_OSS) {
       return (
         <div className={cx('heading')}>
-          <h1 className={styles.pageHeaderTitle}>Grafana OnCall</h1>
+          <h1 className={styles.pageHeaderTitle}>Mansoor OnCall</h1>
           <div className={styles.navbarHeadingContainer}>
             <div className={cx('page-header__sub-title')}>{APP_SUBTITLE}</div>
 
             <Card heading={undefined} className={styles.navbarHeading}>
               <a
-                href="https://github.com/grafana/oncall"
+                href="https://github.com/nuved/oncall"
                 className={styles.navbarLink}
                 target="_blank"
                 rel="noreferrer"
@@ -56,7 +56,7 @@ export const Header = observer(() => {
     return (
       <>
         <Stack>
-          <h1 className={styles.pageHeaderTitle}>Grafana OnCall</h1>
+          <h1 className={styles.pageHeaderTitle}>Mansoor OnCall</h1>
         </Stack>
         <div className={cx('page-header__sub-title')}>{APP_SUBTITLE}</div>
       </>
