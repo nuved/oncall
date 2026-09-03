@@ -216,7 +216,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rbac_enabled: ["True", "False"]
+        # Grafana OSS runs OnCall with basic roles; the fine-grained RBAC mode only exists on
+        # Grafana Enterprise and Cloud, which this fork does not target.
+        rbac_enabled: ["False"]
     env:
       ONCALL_TESTING_RBAC_ENABLED: ${{ matrix.rbac_enabled }}
     services:
@@ -254,7 +256,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rbac_enabled: ["True", "False"]
+        # Grafana OSS runs OnCall with basic roles; the fine-grained RBAC mode only exists on
+        # Grafana Enterprise and Cloud, which this fork does not target.
+        rbac_enabled: ["False"]
     env:
       DATABASE_TYPE: postgresql
       ONCALL_TESTING_RBAC_ENABLED: ${{ matrix.rbac_enabled }}
@@ -296,7 +300,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rbac_enabled: ["True", "False"]
+        # Grafana OSS runs OnCall with basic roles; the fine-grained RBAC mode only exists on
+        # Grafana Enterprise and Cloud, which this fork does not target.
+        rbac_enabled: ["False"]
     env:
       DATABASE_TYPE: sqlite3
       BROKER_TYPE: redis

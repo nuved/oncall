@@ -44,4 +44,5 @@ metric_now: Grafana stable releases the fork is verified on
 | 2026-09-03 | Engine image on GHCR (ghcr.io/nuved/oncall), plugin archive attached to GitHub releases | Docker Hub grafana/oncall and the grafana.com catalog are frozen at the archived build. |
 | 2026-09-03 | Grafana gets 2 GB / 2 CPUs in both compose files | Grafana 13 idles near 400 MiB and peaked at 944 MiB under e2e; the old 500 MB cap restarted it. |
 | 2026-09-03 | Workflows run on ubuntu-latest; Grafana-internal workflows deleted | The 16-core label and the vault/Docker Hub/GCS secrets do not exist for this fork. |
+| 2026-09-03 | Backend test matrix runs only the RBAC-off mode | The operator targets Grafana OSS; fine-grained RBAC exists only on Grafana Enterprise and Cloud. |
 | 2026-09-03 | MariaDB subchart pinned to bitnamilegacy 12.0.2 | The floating `latest` became 13.0.1 on 2026-09-03 and fails the chart's own probe. |
