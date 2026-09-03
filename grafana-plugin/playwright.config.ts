@@ -10,8 +10,13 @@ const IS_CI = !!process.env.CI;
 const BROWSERS = process.env.BROWSERS || 'chromium';
 
 const SETUP_PROJECT_NAME = 'setup';
+// pluginInitialization/configuration.test.ts disconnects and reconnects the plugin, which breaks every test
+// running beside it; it gets its own project so it runs alone, after setup and before the browsers.
+const CONFIGURATION_PROJECT_NAME = 'configuration';
 const getEnabledBrowsers = (browsers: PlaywrightTestProject[]) =>
-  browsers.filter(({ name }) => name === SETUP_PROJECT_NAME || BROWSERS.includes(name));
+  browsers.filter(
+    ({ name }) => name === SETUP_PROJECT_NAME || name === CONFIGURATION_PROJECT_NAME || BROWSERS.includes(name)
+  );
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -77,19 +82,28 @@ export default defineConfig({
       testMatch: /globalSetup\.ts/,
     },
     {
+      name: CONFIGURATION_PROJECT_NAME,
+      use: devices['Desktop Chrome'],
+      testMatch: /pluginInitialization\/configuration\.test\.ts/,
+      dependencies: [SETUP_PROJECT_NAME],
+    },
+    {
       name: 'chromium',
       use: devices['Desktop Chrome'],
-      dependencies: [SETUP_PROJECT_NAME],
+      testIgnore: /pluginInitialization\/configuration\.test\.ts/,
+      dependencies: [CONFIGURATION_PROJECT_NAME],
     },
     {
       name: 'firefox',
       use: devices['Desktop Firefox'],
-      dependencies: [SETUP_PROJECT_NAME],
+      testIgnore: /pluginInitialization\/configuration\.test\.ts/,
+      dependencies: [CONFIGURATION_PROJECT_NAME],
     },
     {
       name: 'webkit',
       use: devices['Desktop Safari'],
-      dependencies: [SETUP_PROJECT_NAME],
+      testIgnore: /pluginInitialization\/configuration\.test\.ts/,
+      dependencies: [CONFIGURATION_PROJECT_NAME],
     },
 
     /* Test against mobile viewports. */
