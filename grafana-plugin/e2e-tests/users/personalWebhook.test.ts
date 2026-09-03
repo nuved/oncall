@@ -33,14 +33,20 @@ test('Connects a personal notification webhook', async ({ adminRolePage: { page 
 
   // Choose a trigger type
   await page.getByTestId('triggerType-selector').locator('div').nth(1).click();
+  await expect(page.getByLabel('Select options menu')).toBeVisible();
   await page.getByLabel('Select options menu').getByText(TRIGGER_TYPE).click();
 
-  // Set a URL
-  await page.locator('#OutgoingWebhook div').locator('.monaco-editor').first().click();
+  // Set a URL. The editor mounts Monaco lazily; typing before its textarea exists is lost, the
+  // form then fails validation and no webhook request is ever sent.
+  const urlEditor = page.locator('#OutgoingWebhook div').locator('.monaco-editor').first();
+  await urlEditor.locator('textarea').first().waitFor();
+  await urlEditor.click();
+  await urlEditor.locator('textarea').first().focus();
   await page.keyboard.insertText('https://example.com');
+  await expect(urlEditor).toContainText('https://example.com');
 
   // Create and check it has been created
-  const responsePromise = page.waitForResponse('**/resources/webhooks/');
+  const responsePromise = page.waitForResponse('**/resources/webhooks/', { timeout: 20_000 });
   await clickButton({ page, buttonText: 'Create' });
   await checkWebhookPresenceInTable({ page, webhookName: WEBHOOK_NAME, expectedTriggerType: TRIGGER_TYPE });
 
