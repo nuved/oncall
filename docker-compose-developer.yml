@@ -333,8 +333,8 @@ services:
       labels: *oncall-labels
       resources:
         limits:
-          memory: 500m
-          cpus: "0.5"
+          memory: 2g
+          cpus: "2"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

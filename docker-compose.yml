@@ -100,8 +100,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500m
-          cpus: "0.5"
+          memory: 2g
+          cpus: "2"
     profiles:
       - with_grafana
     configs:
