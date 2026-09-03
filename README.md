@@ -1,11 +1,23 @@
-# 🚨 Archived: Grafana OnCall OSS 🚨
+# Grafana OnCall (community fork)
 
-On 2025-03-11 Grafana OnCall (OSS) entered maintenance mode and was archived on 2026-03-24.
+Grafana Labs put [OnCall OSS](https://github.com/grafana/oncall) into maintenance mode on 2025-03-11 and archived
+it on 2026-03-24 at v1.16.11. This fork ([nuved/oncall](https://github.com/nuved/oncall)) keeps it running on
+current Grafana releases.
 
-For users seeking a fully supported and actively maintained alternative,
-**Grafana Cloud IRM** offers a modern approach to incident response and on-call management.
+What changed relative to the archived upstream:
 
-- [Grafana Cloud IRM documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/)
+- The plugin runs on Grafana 13.2 (React 19). Upstream's plugin crashes on mount there because
+  `react-sortable-hoc` and `react-transition-group` call `findDOMNode`; they are replaced by `@dnd-kit` and a CSS
+  fade, `react-draggable` passes a `nodeRef`, and the rotation time picker no longer shows a stale time after a
+  timezone change. These fixes are cherry-picked from
+  [appwrite/grafana-oncall](https://github.com/appwrite/grafana-oncall).
+- The plugin requires Grafana 12.0 or newer (`grafanaDependency`), and the e2e suite runs against Grafana 12.4 and
+  13.2.
+- The Insights page renders again: its hidden `alert_groups_total` variable was multi-valued, which produced
+  invalid PromQL.
+- The docker-compose files give Grafana 2 GB of memory; Grafana 13 does not fit in the previous 500 MB cap.
+
+Grafana Labs' supported alternative is [Grafana Cloud IRM](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/).
 
 ## Grafana OnCall
 
@@ -38,9 +50,9 @@ Developer-friendly incident response with brilliant Slack integration.
 ## Getting Started
 
 > [!IMPORTANT]  
-> These instructions are for using Grafana 11 or newer. You must enable the feature toggle for
-> `externalServiceAccounts`. This is already done for the docker files and helm charts.  If you are running Grafana
-> separately see the Grafana documentation on how to enable this.
+> These instructions are for using Grafana 12 or newer (the plugin declares `grafanaDependency: >=12.0.0`). You must
+> enable the feature toggle for `externalServiceAccounts`. This is already done for the docker files and helm charts.
+> If you are running Grafana separately see the Grafana documentation on how to enable this.
 
 We prepared multiple environments:
 
@@ -51,7 +63,7 @@ We prepared multiple environments:
 1. Download [`docker-compose.yml`](docker-compose.yml):
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/grafana/oncall/dev/docker-compose.yml -o docker-compose.yml
+   curl -fsSL https://raw.githubusercontent.com/nuved/oncall/dev/docker-compose.yml -o docker-compose.yml
    ```
 
 2. Set variables:
