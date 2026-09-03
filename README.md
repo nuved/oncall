@@ -1,5 +1,8 @@
 # Grafana OnCall (community fork)
 
+[![Tests](https://github.com/nuved/oncall/actions/workflows/tests.yml/badge.svg?branch=dev)](https://github.com/nuved/oncall/actions/workflows/tests.yml)
+[![Release](https://img.shields.io/github/v/release/nuved/oncall?display_name=tag&sort=semver)](https://github.com/nuved/oncall/releases)
+
 Grafana Labs put [OnCall OSS](https://github.com/grafana/oncall) into maintenance mode on 2025-03-11 and archived
 it on 2026-03-24 at v1.16.11. This fork ([nuved/oncall](https://github.com/nuved/oncall)) keeps it running on
 current Grafana releases.
@@ -16,6 +19,34 @@ What changed relative to the archived upstream:
 - The Insights page renders again: its hidden `alert_groups_total` variable was multi-valued, which produced
   invalid PromQL.
 - The docker-compose files give Grafana 2 GB of memory; Grafana 13 does not fit in the previous 500 MB cap.
+- Releases are this fork's own: the engine image is `ghcr.io/nuved/oncall:<tag>` (amd64 and arm64) and the plugin
+  archive is attached to each [GitHub release](https://github.com/nuved/oncall/releases). The docker-compose files
+  and the Helm chart install the plugin from that archive instead of the grafana.com catalog, which still serves the
+  archived upstream build. `ONCALL_VERSION=1.17.0 docker compose up -d` pins engine and plugin together.
+
+## Tests
+
+Every push to `dev` runs [the full suite](.github/workflows/tests.yml) on GitHub Actions: linters, frontend unit
+tests, Go tests, the engine's pytest suite against MySQL, PostgreSQL and SQLite, Helm unit tests, and the Playwright
+e2e tests against Grafana 12.4 and 13.2. Locally:
+
+```bash
+make unit-test          # frontend type-check + jest, backend-plugin go test (about a minute)
+make test               # engine pytest suite inside the running oncall_engine container (make start first)
+make install-git-hooks  # run `make unit-test` automatically before every `git push`
+```
+
+## Releasing
+
+Push an annotated tag; its message is the release codename:
+
+```bash
+git tag -a v1.17.0 -m "Mansour" && git push origin v1.17.0
+```
+
+[publish.yml](.github/workflows/publish.yml) builds and pushes the engine image, builds the plugin archive, and
+creates the GitHub release with the archive attached. Bump `ONCALL_VERSION` defaults in the docker-compose files,
+`grafana-plugin/package.json` and the Helm chart (`Chart.yaml`, `values.yaml`) in the same change.
 
 Grafana Labs' supported alternative is [Grafana Cloud IRM](https://grafana.com/docs/grafana-cloud/alerting-and-irm/irm/).
 

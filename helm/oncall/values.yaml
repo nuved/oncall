@@ -15,7 +15,7 @@ imagePullSecrets: []
 
 image:
   # Grafana OnCall docker image repository
-  repository: grafana/oncall
+  repository: ghcr.io/nuved/oncall
   tag:
   pullPolicy: Always
 
@@ -632,6 +632,9 @@ externalRedis:
 # It is recommended to host it separately from this release
 grafana:
   enabled: true
+  image:
+    # the plugin requires Grafana 12 or newer; the subchart default is older
+    tag: "13.2.1"
   grafana.ini:
     server:
       domain: helm-testing-grafana
@@ -642,13 +645,19 @@ grafana:
       accessControlOnCall: false
   env:
     GF_AUTH_MANAGED_SERVICE_ACCOUNTS_ENABLED: true
+    # this fork's plugin archive carries no grafana.com signature
+    GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: grafana-oncall-app
   persistence:
     enabled: true
   # Disable psp as PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
   rbac:
     pspEnabled: false
   plugins:
-    - grafana-oncall-app
+    # This fork's plugin archive, not the grafana.com catalog build (the archived upstream plugin,
+    # which crashes on Grafana 13). Keep the version in step with appVersion: plugin and engine
+    # are released as a pair.
+    # yamllint disable-line rule:line-length
+    - https://github.com/nuved/oncall/releases/download/v1.17.0/grafana-oncall-app-1.17.0.zip;grafana-oncall-app
   extraVolumes:
     - name: provisioning
       configMap:
