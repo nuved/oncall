@@ -70,7 +70,8 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
 
-    trace: 'on',
+    // a trace per test is heavy on 2-core runners; CI keeps only the trace of a failing retry
+    trace: IS_CI ? 'on-first-retry' : 'on',
     video: 'off',
     headless: true,
   },
