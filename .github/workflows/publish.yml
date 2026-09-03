@@ -140,7 +140,13 @@ jobs:
         run: |
           tag="$GITHUB_REF_NAME"
           version="${tag#v}"
-          codename="$(git tag -l --format='%(contents:subject)' "$tag")"
+          # actions/checkout stores the tag peeled, so read the annotation through the API
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq '.object.sha')"
+          tag_type="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq '.object.type')"
+          codename=""
+          if [ "$tag_type" = "tag" ]; then
+            codename="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_sha" --jq '.message' | head -1)"
+          fi
           title="$tag"
           if [ -n "$codename" ]; then title="$tag \"$codename\""; fi
           {

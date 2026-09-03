@@ -503,6 +503,13 @@ database:
 # Set mariadb.enabled = false and configure externalMysql
 mariadb:
   enabled: true
+  image:
+    # The subchart floats on bitnami/mariadb:latest, which became MariaDB 13.0.1 on 2026-09-03 and fails the
+    # chart's own readiness probe ("TLS/SSL error: method not supported"). 12.0.2 is the version chart 23.2.1
+    # was released with; Bitnami moved versioned tags to bitnamilegacy in 2025.
+    registry: docker.io
+    repository: bitnamilegacy/mariadb
+    tag: 12.0.2-debian-12-r0
   auth:
     database: oncall
     existingSecret:
