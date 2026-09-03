@@ -283,3 +283,9 @@ backend-manage-command:  ## run Django's `manage.py` script, passing `$CMD` as a
                          ## https://docs.djangoproject.com/en/4.1/ref/django-admin/#django-admin-makemigrations
                          ## alternatively you can open docker container with engine and run commands from there
 	$(call backend_command,python manage.py $(CMD))
+
+install-git-hooks:  ## run the unit tests before every git push (installs .githooks/pre-push)
+	git config core.hooksPath .githooks
+
+unit-test:  ## run the frontend and backend-plugin unit tests natively (same as the pre-push hook)
+	./.githooks/pre-push

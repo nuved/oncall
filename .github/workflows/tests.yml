@@ -1,0 +1,16 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  linting-and-tests:
+    name: Linting and tests
+    uses: ./.github/workflows/linting-and-tests.yml
