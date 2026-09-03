@@ -157,6 +157,8 @@ jobs:
             echo
             echo "Run the hobby stack at this version with \`ONCALL_VERSION=$version docker compose up -d\`."
             echo
+            echo "_In memory of Agha Mansoor, who taught me to stay curious and gave me the room to discover._"
+            echo
           } > notes.md
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" --title "$title" --notes-file notes.md

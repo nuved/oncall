@@ -15,7 +15,7 @@
     "keywords": ["oncall", "irm", "incident", "response"],
     "logos": {
       "small": "assets/img/logo.svg",
-      "large": "assets/img/logo.svg"
+      "large": "assets/img/logo-large.svg"
     },
     "links": [
       {

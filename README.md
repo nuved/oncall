@@ -52,7 +52,9 @@ Grafana Labs' supported alternative is [Grafana Cloud IRM](https://grafana.com/d
 
 ## Grafana OnCall
 
-<img width="400px" src="docs/img/logo.png">
+<img width="240px" src="docs/img/logo.svg" alt="Agha Mansoor, drawn as an on-call avatar">
+
+*In memory of Agha Mansoor, who taught me to stay curious and gave me the room to discover.*
 
 [![Latest Release](https://img.shields.io/github/v/release/grafana/oncall?display_name=tag&sort=semver)](https://github.com/grafana/oncall/releases)
 [![License](https://img.shields.io/github/license/grafana/oncall)](https://github.com/grafana/oncall/blob/dev/LICENSE)
