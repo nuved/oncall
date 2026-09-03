@@ -1,4 +1,4 @@
-# Backlog — OnCall fork (codename Mansoor)      drafted-by: fable · 2026-09-03
+# Backlog — Mansoor OnCall      drafted-by: fable · 2026-09-03
 
 ## Picker
 

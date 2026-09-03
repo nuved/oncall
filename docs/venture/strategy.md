@@ -1,4 +1,4 @@
-# Strategy — OnCall fork (codename Mansoor)      drafted-by: fable · 2026-09-03 · approved-by: none yet
+# Strategy — Mansoor OnCall      drafted-by: fable · 2026-09-03 · approved-by: none yet
 
 metric_now: Grafana stable releases the fork is verified on
 · current: 13.2.1 by manual browser check and build; e2e in CI not yet green

@@ -1,4 +1,4 @@
-# Ledger — OnCall fork (codename Mansoor)
+# Ledger — Mansoor OnCall
 
 One row per unit of work. Status: done-verified (evidence re-run by a second pass), done, ongoing,
 awaiting (blocked_on: human), dropped. Evidence is a SHA, tag, run id or file; a row without evidence is not done.
@@ -16,5 +16,6 @@ awaiting (blocked_on: human), dropped. Evidence is a SHA, tag, run id or file; a
 | 2026-09-03 | L-09 first CI fixes: Helm snapshots, migration check on push, yamllint | B-01 | velocity | done | 561b58db | The lint, Helm and migration jobs pass on this fork's workflows. |
 | 2026-09-03 | L-10 MariaDB subchart pinned to bitnamilegacy 12.0.2 after latest became 13.0.1 | B-01 | risk | done | f4d4abe1; bitnami/mariadb:latest image config created 2026-09-03T01:17Z | The e2e database starts again, and Helm users stop depending on a tag that changes under them. |
 | 2026-09-03 | L-11 own logo: avatar mark with on-call dot, portrait medallion, dedication in README and release notes | B-01 | retention | done | b0427b32; proposal approved by the operator in chat ("confirmed") | The fork carries its own identity instead of Grafana Labs' mark, and every release names whose memory it honours. |
+| 2026-09-03 | L-12 product named Mansoor OnCall; plugin archive ships the AGPL text instead of the Enterprise agreement file | B-01 | risk | done | f4474a94; Grafana Labs: "OnCall (OSS) is licensed under AGPLv3" (blog, grafana-oncall-maintenance-mode) | Users see the fork's own name, and the plugin they download carries the licence that actually applies to it. |
 | 2026-09-03 | T-01 tests.yml green on dev | B-01 | risk | ongoing | run pending after L-10 | see backlog |
 | 2026-09-03 | T-06 real Twilio call | B-02 | retention | awaiting (blocked_on: human — Twilio account, number, credentials) | — | see backlog |

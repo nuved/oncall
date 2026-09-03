@@ -1,4 +1,4 @@
-# Build plan — OnCall fork (codename Mansoor)    drafted-by: fable · 2026-09-03 · approved-by: none yet
+# Build plan — Mansoor OnCall    drafted-by: fable · 2026-09-03 · approved-by: none yet
 
 ## B-01 The fork keeps working on every current Grafana release, proven by CI
 
