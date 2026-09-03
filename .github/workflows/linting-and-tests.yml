@@ -92,6 +92,8 @@ jobs:
   ensure-database-migrations-drop-columns-the-correct-way:
     name: "Ensure database migrations drop columns the correct way"
     runs-on: ubuntu-latest
+    # compares the migrations against a base ref, which only pull_request, merge_group and release events have
+    if: github.event_name != 'push' && github.event_name != 'workflow_dispatch'
     steps:
       - name: Checkout PR code
         uses: actions/checkout@v4
