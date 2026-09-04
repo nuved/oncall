@@ -1,0 +1,32 @@
+name: Scheduled compatibility
+
+# Runs the e2e suite against Grafana's floating images once a week and on demand, so a Grafana
+# release that breaks the plugin shows up here before anyone upgrades.
+
+on:
+  schedule:
+    # Mondays 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-compatibility
+  cancel-in-progress: true
+
+jobs:
+  end-to-end-tests:
+    name: e2e on floating Grafana images
+    uses: ./.github/workflows/e2e-tests.yml
+    strategy:
+      matrix:
+        # renovate: datasource=docker depName=grafana/grafana
+        grafana_version:
+          - latest
+          - nightly
+      fail-fast: false
+    with:
+      grafana_version: ${{ matrix.grafana_version }}
+      browsers: "chromium"
