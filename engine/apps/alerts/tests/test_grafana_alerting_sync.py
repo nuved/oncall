@@ -8,6 +8,27 @@ from apps.alerts.models import AlertReceiveChannel
 from apps.grafana_plugin.helpers import GrafanaAPIClient
 
 TEST_INTEGRATION_URL = "/some/test/url"
+
+
+def provisioned_entries(alertmanager_config):
+    """What GET /api/v1/provisioning/contact-points returns for the receivers in a Grafana Alertmanager config"""
+    entries = []
+    for receiver in alertmanager_config["alertmanager_config"]["receivers"]:
+        for i, receiver_config in enumerate(receiver.get("grafana_managed_receiver_configs", [])):
+            entries.append(
+                {
+                    "uid": receiver_config.get("uid") or f"{receiver['name']}-{i}",
+                    "name": receiver["name"],
+                    "type": receiver_config["type"],
+                    "settings": receiver_config.get("settings", {}),
+                    "disableResolveMessage": False,
+                }
+            )
+    return entries
+
+
+PROVISIONING_OK = ({"uid": "new"}, {"status_code": 202, "connected": True, "message": "Accepted", "url": ""})
+PROVISIONING_DELETED = (None, {"status_code": 202, "connected": True, "message": "Accepted", "url": ""})
 ALERTMANAGER_ACTIVE_RECEIVER_1 = "test-receiver"
 ALERTMANAGER_ACTIVE_RECEIVER_2 = "test-receiver-empty"
 ALERTMANAGER_ACTIVE_RECEIVER_CONNECTED = "test-receiver-oncall-connected"
@@ -440,24 +461,31 @@ def test_connect_contact_point_existing(
         with patch(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
-        ) as update_config:
+        ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.create_provisioned_contact_point",
+            return_value=PROVISIONING_OK,
+        ) as create_provisioned:
             result, error = sync_manager.connect_contact_point(datasource_uid, contact_point_name, create_new)
             if create_new:
                 assert (result, error) == (False, "Contact point already exists")
                 assert not update_config.called
+                assert not create_provisioned.called
+            elif datasource_uid == "grafana":
+                # Grafana 13 has no config POST any more: the integration is added through the provisioning API
+                assert (result, error) == (True, "")
+                assert not update_config.called
+                contact_point = create_provisioned.call_args.args[-1]
+                assert contact_point["name"] == ALERTMANAGER_ACTIVE_RECEIVER_1
+                assert contact_point["type"] == "oncall"
+                assert contact_point["settings"]["url"] == TEST_INTEGRATION_URL
             else:
                 updated_config = update_config.call_args.args[-1]
                 assert (result, error) == (True, "")
+                assert not create_provisioned.called
 
                 contact_point = updated_config["alertmanager_config"]["receivers"][0]
                 assert contact_point["name"] == ALERTMANAGER_ACTIVE_RECEIVER_1
-                if datasource_uid == "grafana":
-                    assert (
-                        contact_point["grafana_managed_receiver_configs"][-1]["settings"]["url"] == TEST_INTEGRATION_URL
-                    )
-                    assert contact_point["grafana_managed_receiver_configs"][-1]["type"] == "oncall"
-                else:
-                    assert contact_point["oncall_configs"][-1]["url"] == TEST_INTEGRATION_URL
+                assert contact_point["oncall_configs"][-1]["url"] == TEST_INTEGRATION_URL
 
 
 @patch(
@@ -502,24 +530,30 @@ def test_connect_contact_point_not_existing(
         with patch(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
-        ) as update_config:
+        ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.create_provisioned_contact_point",
+            return_value=PROVISIONING_OK,
+        ) as create_provisioned:
             result, error = sync_manager.connect_contact_point(datasource_uid, contact_point_name, create_new)
-            if create_new:
+            if create_new and datasource_uid == "grafana":
+                assert (result, error) == (True, "")
+                assert not update_config.called
+                contact_point = create_provisioned.call_args.args[-1]
+                assert contact_point["name"] == RECEIVER_NAME_NOT_IN_CONFIG
+                assert contact_point["type"] == "oncall"
+                assert contact_point["settings"]["url"] == TEST_INTEGRATION_URL
+            elif create_new:
                 updated_config = update_config.call_args.args[-1]
                 assert (result, error) == (True, "")
+                assert not create_provisioned.called
 
                 contact_point = updated_config["alertmanager_config"]["receivers"][-1]
                 assert contact_point["name"] == RECEIVER_NAME_NOT_IN_CONFIG
-                if datasource_uid == "grafana":
-                    assert (
-                        contact_point["grafana_managed_receiver_configs"][-1]["settings"]["url"] == TEST_INTEGRATION_URL
-                    )
-                    assert contact_point["grafana_managed_receiver_configs"][-1]["type"] == "oncall"
-                else:
-                    assert contact_point["oncall_configs"][-1]["url"] == TEST_INTEGRATION_URL
+                assert contact_point["oncall_configs"][-1]["url"] == TEST_INTEGRATION_URL
             else:
                 assert (result, error) == (False, "Contact point was not found")
                 assert not update_config.called
+                assert not create_provisioned.called
 
 
 @patch(
@@ -561,17 +595,32 @@ def test_disconnect_contact_point_existing_connected(
         with patch(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
-        ) as update_config:
+        ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+            return_value=(provisioned_entries(alertmanager_config), {}),
+        ), patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.delete_provisioned_contact_point",
+            return_value=PROVISIONING_DELETED,
+        ) as delete_provisioned:
             result, error = sync_manager.disconnect_contact_point(datasource_uid, contact_point_name)
-            updated_config = update_config.call_args.args[-1]
             assert (result, error) == (True, "")
 
-            contact_point = updated_config["alertmanager_config"]["receivers"][-2]
-            assert contact_point["name"] == ALERTMANAGER_ACTIVE_RECEIVER_CONNECTED
-
             if datasource_uid == "grafana":
-                assert not contact_point.get("grafana_managed_receiver_configs")
+                # only the entries of that contact point which point at this integration are deleted
+                assert not update_config.called
+                expected_uids = [
+                    entry["uid"]
+                    for entry in provisioned_entries(alertmanager_config)
+                    if entry["name"] == ALERTMANAGER_ACTIVE_RECEIVER_CONNECTED
+                    and entry["settings"].get("url") == TEST_INTEGRATION_URL
+                ]
+                assert expected_uids
+                assert [call.args[-1] for call in delete_provisioned.call_args_list] == expected_uids
             else:
+                assert not delete_provisioned.called
+                updated_config = update_config.call_args.args[-1]
+                contact_point = updated_config["alertmanager_config"]["receivers"][-2]
+                assert contact_point["name"] == ALERTMANAGER_ACTIVE_RECEIVER_CONNECTED
                 assert not contact_point.get("webhook_configs")
                 assert not contact_point.get("oncall_configs")
 
@@ -617,9 +666,16 @@ def test_disconnect_contact_point_not_connected(
         with patch(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
-        ) as update_config:
+        ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+            return_value=(provisioned_entries(alertmanager_config), {}),
+        ), patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.delete_provisioned_contact_point",
+            return_value=PROVISIONING_DELETED,
+        ) as delete_provisioned:
             result, error = sync_manager.disconnect_contact_point(datasource_uid, contact_point_name)
             assert not update_config.called
+            assert not delete_provisioned.called
             if contact_point_name == ALERTMANAGER_ACTIVE_RECEIVER_1:
                 assert (result, error) == (False, "OnCall connection was not found in selected contact point")
             else:

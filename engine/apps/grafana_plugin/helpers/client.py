@@ -113,6 +113,9 @@ class APIClient:
     def api_put(self, endpoint: str, body: typing.Optional[typing.Dict] = None, **kwargs) -> APIClientResponse[_RT]:
         return self.call_api(endpoint, requests.put, body, **kwargs)
 
+    def api_delete(self, endpoint: str, **kwargs) -> APIClientResponse[_RT]:
+        return self.call_api(endpoint, requests.delete, **kwargs)
+
     def call_api(
         self, endpoint: str, http_method: HttpMethod, body: typing.Optional[typing.Dict] = None, **kwargs
     ) -> APIClientResponse[_RT]:
@@ -302,6 +305,17 @@ class GrafanaAPIClient(APIClient):
 
     def get_alerting_notifiers(self):
         return self.api_get("api/alert-notifiers")
+
+    # Grafana-managed Alertmanager, provisioning API. Grafana 13 removed the POST on
+    # api/alertmanager/grafana/config/api/v1/alerts, so contact points are written through this API instead.
+    def get_provisioned_contact_points(self) -> APIClientResponse[typing.List[typing.Dict]]:
+        return self.api_get("api/v1/provisioning/contact-points")
+
+    def create_provisioned_contact_point(self, contact_point: typing.Dict) -> APIClientResponse:
+        return self.api_post("api/v1/provisioning/contact-points", contact_point)
+
+    def delete_provisioned_contact_point(self, uid: str) -> APIClientResponse:
+        return self.api_delete(f"api/v1/provisioning/contact-points/{uid}")
 
     def get_grafana_plugin_settings(self, recipient: str) -> APIClientResponse["GrafanaAPIClient.Types.PluginSettings"]:
         return self.api_get(f"api/plugins/{recipient}/settings")

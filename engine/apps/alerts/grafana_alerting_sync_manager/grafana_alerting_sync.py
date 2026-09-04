@@ -126,19 +126,27 @@ class GrafanaAlertingSyncManager:
         oncall_config, config_field = self._get_oncall_config_and_config_field_for_datasource_type(
             contact_point_name, is_grafana_datasource, is_oncall_type_available
         )
+        receiver_names = [receiver["name"] for receiver in alerting_receivers]
         if create_new:
-            if contact_point_name in [receiver["name"] for receiver in alerting_receivers]:
+            if contact_point_name in receiver_names:
                 return False, "Contact point already exists"
+        elif contact_point_name not in receiver_names:
+            return False, "Contact point was not found"
+
+        if is_grafana_datasource:
+            # Grafana 13 removed the legacy config POST; the provisioning API adds an integration to a contact
+            # point (creating the contact point when the name is new) without rewriting the whole config.
+            if not self.create_provisioned_contact_point(self.client, oncall_config):
+                return False, "Failed to update Alertmanager config"
+            return True, ""
+
+        if create_new:
             alerting_receivers.append({"name": contact_point_name, config_field: [oncall_config]})
         else:
-            receiver_found = False
             for receiver in alerting_receivers:
                 if receiver["name"] == contact_point_name:
-                    receiver_found = True
                     receiver.setdefault(config_field, []).append(oncall_config)
                     break
-            if not receiver_found:
-                return False, "Contact point was not found"
 
         response = self.update_alerting_config_for_datasource(self.client, datasource_uid, config, updated_config)
         if response is None:
@@ -154,6 +162,8 @@ class GrafanaAlertingSyncManager:
             f"{self.alert_receive_channel.id} for organization {self.alert_receive_channel.organization.id}"
         )
         is_grafana_datasource = datasource_uid == self.GRAFANA_ALERTING_DATASOURCE
+        if is_grafana_datasource:
+            return self._disconnect_provisioned_contact_point(contact_point_name)
         config = self.get_alerting_config_for_datasource(self.client, datasource_uid)
         if config is None:
             return False, "Failed to get Alertmanager config"
@@ -185,6 +195,10 @@ class GrafanaAlertingSyncManager:
         for datasource in datasources:
             datasource_uid = datasource["uid"]
             is_grafana_datasource = datasource_uid == self.GRAFANA_ALERTING_DATASOURCE
+            if is_grafana_datasource:
+                for entry in self._get_provisioned_entries_for_integration():
+                    self.delete_provisioned_contact_point(self.client, entry["uid"])
+                continue
             config = self.get_alerting_config_for_datasource(self.client, datasource_uid)
             if config is None:
                 continue
@@ -195,6 +209,73 @@ class GrafanaAlertingSyncManager:
             self._remove_integration_config_from_each_contact_point(is_grafana_datasource, alertmanager_config)
             self.update_alerting_config_for_datasource(self.client, datasource_uid, config, updated_config)
         return
+
+    # Grafana-managed Alertmanager through the provisioning API
+    def _get_provisioned_entries_for_integration(self) -> list[dict]:
+        """
+        Provisioning entries (one per integration inside a contact point) that point at this OnCall integration
+        """
+        entries = self.get_provisioned_contact_points(self.client)
+        return [
+            entry
+            for entry in entries
+            if entry.get("type") in ("webhook", "oncall")
+            and (entry.get("settings") or {}).get("url") == self.integration_url
+        ]
+
+    def _disconnect_provisioned_contact_point(self, contact_point_name: str) -> Tuple[bool, str]:
+        entries = self.get_provisioned_contact_points(self.client)
+        if entries is None:
+            return False, "Failed to get Alertmanager config"
+        if contact_point_name not in [entry.get("name") for entry in entries]:
+            return False, "Contact point was not found"
+        connected = [
+            entry
+            for entry in entries
+            if entry.get("name") == contact_point_name
+            and entry.get("type") in ("webhook", "oncall")
+            and (entry.get("settings") or {}).get("url") == self.integration_url
+        ]
+        if not connected:
+            return False, "OnCall connection was not found in selected contact point"
+        for entry in connected:
+            if not self.delete_provisioned_contact_point(self.client, entry["uid"]):
+                return False, "Failed to update Alertmanager config"
+        return True, ""
+
+    @classmethod
+    def get_provisioned_contact_points(cls, client: "GrafanaAPIClient") -> Optional[list]:
+        entries, response_info = client.get_provisioned_contact_points()
+        if entries is None:
+            logger.warning(
+                f"GrafanaAlertingSyncManager: Failed to list provisioned contact points; response: {response_info}"
+            )
+            return None
+        return entries
+
+    @classmethod
+    def create_provisioned_contact_point(cls, client: "GrafanaAPIClient", contact_point: dict) -> bool:
+        _, response_info = client.create_provisioned_contact_point(contact_point)
+        if response_info["status_code"] not in (status.HTTP_200_OK, status.HTTP_201_CREATED, status.HTTP_202_ACCEPTED):
+            logger.warning(
+                f"GrafanaAlertingSyncManager: Failed to create provisioned contact point; response: {response_info}"
+            )
+            return False
+        return True
+
+    @classmethod
+    def delete_provisioned_contact_point(cls, client: "GrafanaAPIClient", uid: str) -> bool:
+        _, response_info = client.delete_provisioned_contact_point(uid)
+        if response_info["status_code"] not in (
+            status.HTTP_200_OK,
+            status.HTTP_202_ACCEPTED,
+            status.HTTP_204_NO_CONTENT,
+        ):
+            logger.warning(
+                f"GrafanaAlertingSyncManager: Failed to delete provisioned contact point {uid}; response: {response_info}"
+            )
+            return False
+        return True
 
     # API requests to get/update Alertmanager config
     @classmethod
