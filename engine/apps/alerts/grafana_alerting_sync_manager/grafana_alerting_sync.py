@@ -35,11 +35,10 @@ class GrafanaAlertingSyncManager:
     def check_for_connection_errors(cls, organization: "Organization") -> Optional[str]:
         """Check if it possible to connect to alerting, otherwise return error message"""
         client = GrafanaAPIClient(api_url=organization.grafana_url, api_token=organization.api_token)
-        recipient = cls.GRAFANA_ALERTING_DATASOURCE
-        config, response_info = client.get_alerting_config(recipient)
-        if config is None:
+        entries, response_info = client.get_provisioned_contact_points()
+        if entries is None:
             logger.warning(
-                f"GrafanaAlertingSyncManager: Failed to connect to contact point (GET): Is unified alerting enabled "
+                f"GrafanaAlertingSyncManager: Failed to list contact points (GET): Is unified alerting enabled "
                 f"on instance? {response_info}"
             )
             return (
@@ -103,12 +102,29 @@ class GrafanaAlertingSyncManager:
             f"for organization {self.alert_receive_channel.organization.id}"
         )
         is_grafana_datasource = datasource_uid == self.GRAFANA_ALERTING_DATASOURCE
+        is_oncall_type_available = self.check_if_oncall_type_is_available(is_grafana_datasource)
+        oncall_config, config_field = self._get_oncall_config_and_config_field_for_datasource_type(
+            contact_point_name, is_grafana_datasource, is_oncall_type_available
+        )
+
+        if is_grafana_datasource:
+            # Grafana 13 removed the legacy config POST and restricted its GET; the provisioning API lists
+            # contact points and adds an integration to one (creating it when the name is new).
+            entries = self.get_provisioned_contact_points(self.client)
+            if entries is None:
+                return False, "Failed to get Alertmanager config"
+            receiver_names = [entry.get("name") for entry in entries]
+            if create_new and contact_point_name in receiver_names:
+                return False, "Contact point already exists"
+            if not create_new and contact_point_name not in receiver_names:
+                return False, "Contact point was not found"
+            if not self.create_provisioned_contact_point(self.client, oncall_config):
+                return False, "Failed to update Alertmanager config"
+            return True, ""
+
         config = self.get_alerting_config_for_datasource(self.client, datasource_uid)
         if config is None or config.get("alertmanager_config") is None:
-            # Config was probably deleted. Grafana Alertmanager should return config in any case. Try to get default
-            # config from another endpoint if it's not Grafana Alertmanager
-            if is_grafana_datasource:
-                return False, "Failed to get Alertmanager config"
+            # Config was probably deleted. Try to get default config from another endpoint
             default_config = self.get_default_mimir_alertmanager_config_for_datasource(self.client, datasource_uid)
             if default_config is None:
                 return False, "Failed to get Alertmanager config"
@@ -120,25 +136,12 @@ class GrafanaAlertingSyncManager:
         if not alertmanager_config:
             return False, "Failed to get Alertmanager config"
         alerting_receivers = alertmanager_config.get("receivers", [])
-
-        is_oncall_type_available = self.check_if_oncall_type_is_available(is_grafana_datasource)
-
-        oncall_config, config_field = self._get_oncall_config_and_config_field_for_datasource_type(
-            contact_point_name, is_grafana_datasource, is_oncall_type_available
-        )
         receiver_names = [receiver["name"] for receiver in alerting_receivers]
         if create_new:
             if contact_point_name in receiver_names:
                 return False, "Contact point already exists"
         elif contact_point_name not in receiver_names:
             return False, "Contact point was not found"
-
-        if is_grafana_datasource:
-            # Grafana 13 removed the legacy config POST; the provisioning API adds an integration to a contact
-            # point (creating the contact point when the name is new) without rewriting the whole config.
-            if not self.create_provisioned_contact_point(self.client, oncall_config):
-                return False, "Failed to update Alertmanager config"
-            return True, ""
 
         if create_new:
             alerting_receivers.append({"name": contact_point_name, config_field: [oncall_config]})
@@ -363,6 +366,15 @@ class GrafanaAlertingSyncManager:
     @classmethod
     def get_contact_points_for_datasource(cls, client: "GrafanaAPIClient", datasource_uid: str) -> Optional[list]:
         is_grafana_datasource = datasource_uid == cls.GRAFANA_ALERTING_DATASOURCE
+        if is_grafana_datasource:
+            entries = cls.get_provisioned_contact_points(client)
+            if entries is None:
+                return None
+            names: list[str] = []
+            for entry in entries:
+                if entry.get("name") not in names:
+                    names.append(entry.get("name"))
+            return names
         config = cls.get_alerting_config_for_datasource(client, datasource_uid)
         if config is None or config.get("alertmanager_config") is None:
             # Config was probably deleted. Grafana Alertmanager should return config in any case. Try to get default
@@ -380,6 +392,12 @@ class GrafanaAlertingSyncManager:
 
     def get_connected_contact_points_for_datasource(self, datasource_uid: str) -> list:
         is_grafana_datasource = datasource_uid == self.GRAFANA_ALERTING_DATASOURCE
+        if is_grafana_datasource:
+            contact_points: list[dict] = []
+            for entry in self._get_provisioned_entries_for_integration():
+                if entry.get("name") not in [cp["name"] for cp in contact_points]:
+                    contact_points.append({"name": entry.get("name"), "notification_connected": True})
+            return contact_points
         config = self.get_alerting_config_for_datasource(self.client, datasource_uid)
         if config is None:
             return []

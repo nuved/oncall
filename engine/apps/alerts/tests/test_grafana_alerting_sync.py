@@ -365,6 +365,9 @@ def test_get_connected_contact_points_from_config(
     with patch(
         "apps.grafana_plugin.helpers.GrafanaAPIClient.get_alerting_config",
         return_value=(alertmanager_config, {}),
+    ), patch(
+        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+        return_value=(provisioned_entries(alertmanager_config) if alertmanager_config else None, {}),
     ):
         connected_contact_points = sync_manager.get_connected_contact_points_for_datasource(datasource_uid)
         assert connected_contact_points == expected_contact_points
@@ -381,11 +384,13 @@ def test_get_contact_points_from_config(make_alert_receive_channel):
     ]
 
     with patch(
-        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_alerting_config",
-        return_value=(GRAFANA_ALERTMANAGER_CONFIG, {}),
+        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+        return_value=(provisioned_entries(GRAFANA_ALERTMANAGER_CONFIG), {}),
     ):
         contact_points = GrafanaAlertingSyncManager.get_contact_points_for_datasource(client, "grafana")
-        assert contact_points == expected_contact_points
+        # the provisioning API lists one row per integration, so a contact point without any integration
+        # (possible only in the legacy config fixture) cannot appear
+        assert contact_points == [name for name in expected_contact_points if name != ALERTMANAGER_ACTIVE_RECEIVER_2]
 
     with patch(
         "apps.grafana_plugin.helpers.GrafanaAPIClient.get_alerting_config",
@@ -407,7 +412,7 @@ def test_get_contact_points_from_config(make_alert_receive_channel):
             assert mocked_get_default_config.called
 
     with patch(
-        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_alerting_config",
+        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
         return_value=(None, {}),
     ):
         with patch(
@@ -462,6 +467,9 @@ def test_connect_contact_point_existing(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
         ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+            return_value=(provisioned_entries(alertmanager_config), {}),
+        ), patch(
             "apps.grafana_plugin.helpers.GrafanaAPIClient.create_provisioned_contact_point",
             return_value=PROVISIONING_OK,
         ) as create_provisioned:
@@ -531,6 +539,9 @@ def test_connect_contact_point_not_existing(
             "apps.alerts.grafana_alerting_sync_manager.GrafanaAlertingSyncManager.update_alerting_config_for_datasource",
             return_value="OK",
         ) as update_config, patch(
+            "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+            return_value=(provisioned_entries(alertmanager_config), {}),
+        ), patch(
             "apps.grafana_plugin.helpers.GrafanaAPIClient.create_provisioned_contact_point",
             return_value=PROVISIONING_OK,
         ) as create_provisioned:
