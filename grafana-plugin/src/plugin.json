@@ -575,6 +575,62 @@
         "action": "alert.notifications:write"
       },
       {
+        "action": "alert.notifications.config-history:read"
+      },
+      {
+        "action": "alert.notifications.provisioning:read"
+      },
+      {
+        "action": "alert.notifications.provisioning:write"
+      },
+      {
+        "action": "alert.notifications.external:read",
+        "scope": "datasources:*"
+      },
+      {
+        "action": "alert.notifications.external:write",
+        "scope": "datasources:*"
+      },
+      {
+        "action": "alert.notifications.receivers:read",
+        "scope": "receivers:*"
+      },
+      {
+        "action": "alert.notifications.receivers:create"
+      },
+      {
+        "action": "alert.notifications.receivers:write",
+        "scope": "receivers:*"
+      },
+      {
+        "action": "alert.notifications.receivers:delete",
+        "scope": "receivers:*"
+      },
+      {
+        "action": "alert.notifications.routes:read"
+      },
+      {
+        "action": "alert.notifications.routes:write"
+      },
+      {
+        "action": "alert.notifications.templates:read"
+      },
+      {
+        "action": "alert.notifications.templates:write"
+      },
+      {
+        "action": "alert.notifications.templates:delete"
+      },
+      {
+        "action": "alert.notifications.time-intervals:read"
+      },
+      {
+        "action": "alert.notifications.time-intervals:write"
+      },
+      {
+        "action": "alert.notifications.time-intervals:delete"
+      },
+      {
         "action": "dashboards:create",
         "scope": "folders:*"
       },
