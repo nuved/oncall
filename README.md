@@ -23,7 +23,7 @@ What changed relative to the archived upstream:
 - Releases are this fork's own: the engine image is `ghcr.io/nuved/oncall:<tag>` (amd64 and arm64) and the plugin
   archive is attached to each [GitHub release](https://github.com/nuved/oncall/releases). The docker-compose files
   and the Helm chart install the plugin from that archive instead of the grafana.com catalog, which still serves the
-  archived upstream build. `ONCALL_VERSION=1.17.0 docker compose up -d` pins engine and plugin together.
+  archived upstream build. `ONCALL_VERSION=1.17.1 docker compose up -d` pins engine and plugin together.
 
 ## Tests
 
@@ -42,7 +42,7 @@ make install-git-hooks  # run `make unit-test` automatically before every `git p
 Push an annotated tag; its message is the release codename:
 
 ```bash
-git tag -a v1.17.0 -m "Mansoor" && git push origin v1.17.0
+git tag -a v1.17.2 -m "Mansoor" && git push origin v1.17.2
 ```
 
 [publish.yml](.github/workflows/publish.yml) builds and pushes the engine image, builds the plugin archive, and

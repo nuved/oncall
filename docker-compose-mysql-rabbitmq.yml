@@ -22,7 +22,7 @@ x-environment: &oncall-environment
 
 services:
   engine:
-    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.0}
+    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.1}
     restart: always
     ports:
       - "8080:8080"
@@ -39,7 +39,7 @@ services:
         condition: service_started
 
   celery:
-    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.0}
+    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.1}
     restart: always
     command: sh -c "./celery_with_exporter.sh"
     environment: *oncall-environment
@@ -54,7 +54,7 @@ services:
         condition: service_started
 
   oncall_db_migration:
-    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.0}
+    image: ghcr.io/nuved/oncall:v${ONCALL_VERSION:-1.17.1}
     command: python manage.py migrate --noinput
     environment: *oncall-environment
     depends_on:
@@ -146,7 +146,7 @@ services:
       # The grafana.com catalog build is the archived upstream plugin, which crashes on Grafana 13.
       # ONCALL_VERSION pins the plugin and the engine together; they are released as a pair.
       # yamllint disable-line rule:line-length
-      GF_INSTALL_PLUGINS: https://github.com/nuved/oncall/releases/download/v${ONCALL_VERSION:-1.17.0}/grafana-oncall-app-${ONCALL_VERSION:-1.17.0}.zip;grafana-oncall-app
+      GF_INSTALL_PLUGINS: https://github.com/nuved/oncall/releases/download/v${ONCALL_VERSION:-1.17.1}/grafana-oncall-app-${ONCALL_VERSION:-1.17.1}.zip;grafana-oncall-app
       GF_AUTH_MANAGED_SERVICE_ACCOUNTS_ENABLED: true
     deploy:
       resources:

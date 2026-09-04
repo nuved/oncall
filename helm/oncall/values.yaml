@@ -664,7 +664,7 @@ grafana:
     # which crashes on Grafana 13). Keep the version in step with appVersion: plugin and engine
     # are released as a pair.
     # yamllint disable-line rule:line-length
-    - https://github.com/nuved/oncall/releases/download/v1.17.0/grafana-oncall-app-1.17.0.zip;grafana-oncall-app
+    - https://github.com/nuved/oncall/releases/download/v1.17.1/grafana-oncall-app-1.17.1.zip;grafana-oncall-app
   extraVolumes:
     - name: provisioning
       configMap:
