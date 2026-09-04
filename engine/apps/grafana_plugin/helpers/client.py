@@ -117,7 +117,12 @@ class APIClient:
         return self.call_api(endpoint, requests.delete, **kwargs)
 
     def call_api(
-        self, endpoint: str, http_method: HttpMethod, body: typing.Optional[typing.Dict] = None, **kwargs
+        self,
+        endpoint: str,
+        http_method: HttpMethod,
+        body: typing.Optional[typing.Dict] = None,
+        extra_headers: typing.Optional[typing.Dict[str, str]] = None,
+        **kwargs,
     ) -> APIClientResponse[_RT]:
         request_start = time.perf_counter()
         call_status: ApiClientResponseCallStatus = {
@@ -127,7 +132,8 @@ class APIClient:
             "message": "",
         }
         try:
-            response = http_method(call_status["url"], json=body, headers=self.request_headers, **kwargs)
+            headers = {**self.request_headers, **(extra_headers or {})}
+            response = http_method(call_status["url"], json=body, headers=headers, **kwargs)
             call_status["status_code"] = response.status_code
             response.raise_for_status()
 
@@ -311,11 +317,17 @@ class GrafanaAPIClient(APIClient):
     def get_provisioned_contact_points(self) -> APIClientResponse[typing.List[typing.Dict]]:
         return self.api_get("api/v1/provisioning/contact-points")
 
+    # X-Disable-Provenance keeps the contact point editable in Grafana's UI, as contact points written through
+    # the legacy config endpoint were; without it Grafana marks it as provisioned and locks it to the API.
+    PROVISIONING_HEADERS = {"X-Disable-Provenance": "true"}
+
     def create_provisioned_contact_point(self, contact_point: typing.Dict) -> APIClientResponse:
-        return self.api_post("api/v1/provisioning/contact-points", contact_point)
+        return self.api_post(
+            "api/v1/provisioning/contact-points", contact_point, extra_headers=self.PROVISIONING_HEADERS
+        )
 
     def delete_provisioned_contact_point(self, uid: str) -> APIClientResponse:
-        return self.api_delete(f"api/v1/provisioning/contact-points/{uid}")
+        return self.api_delete(f"api/v1/provisioning/contact-points/{uid}", extra_headers=self.PROVISIONING_HEADERS)
 
     def get_grafana_plugin_settings(self, recipient: str) -> APIClientResponse["GrafanaAPIClient.Types.PluginSettings"]:
         return self.api_get(f"api/plugins/{recipient}/settings")
