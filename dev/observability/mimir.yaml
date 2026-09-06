@@ -1,0 +1,142 @@
+# Mimir in single-process ("monolithic") mode for the kind demo: every Mimir component in one pod,
+# blocks on a local volume. Alloy remote-writes to http://mimir.observability.svc:9009/api/v1/push and
+# Grafana queries http://mimir.observability.svc:9009/prometheus. Not a production layout: use the
+# mimir-distributed chart with object storage for that.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  namespace: observability
+data:
+  mimir.yaml: |
+    target: all
+    multitenancy_enabled: false
+    server:
+      http_listen_port: 9009
+      log_level: warn
+    activity_tracker:
+      # defaults to ./metrics-activity.log, which is read-only for the non-root user
+      filepath: /data/metrics-activity.log
+    distributor:
+      ring:
+        kvstore:
+          store: memberlist
+      pool:
+        health_check_ingesters: true
+    ingester:
+      ring:
+        min_ready_duration: 0s
+        final_sleep: 0s
+        num_tokens: 512
+        kvstore:
+          store: memberlist
+        replication_factor: 1
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+        kvstore:
+          store: memberlist
+    compactor:
+      data_dir: /data/compactor
+      sharding_ring:
+        kvstore:
+          store: memberlist
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+      tsdb:
+        dir: /data/tsdb
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+    ruler:
+      rule_path: /data/ruler
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/rules
+    alertmanager:
+      data_dir: /data/alertmanager-data
+    alertmanager_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/alertmanager
+    limits:
+      ingestion_rate: 50000
+      max_global_series_per_user: 500000
+      compactor_blocks_retention_period: 168h
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: mimir
+spec:
+  selector:
+    app.kubernetes.io/name: mimir
+  ports:
+    - name: http
+      port: 9009
+      targetPort: 9009
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mimir
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: mimir
+spec:
+  serviceName: mimir
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mimir
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mimir
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsNonRoot: true
+      containers:
+        - name: mimir
+          image: grafana/mimir:3.1.0
+          args:
+            - -config.file=/etc/mimir/mimir.yaml
+          ports:
+            - name: http
+              containerPort: 9009
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/mimir
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: mimir-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi

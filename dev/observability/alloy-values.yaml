@@ -1,0 +1,141 @@
+# Grafana Alloy as a DaemonSet: tails every pod's logs into Loki through the Kubernetes API (no
+# host-path mounts), scrapes each node's cAdvisor and the OnCall exporter, and remote-writes the
+# metrics to Mimir. Chart: grafana/alloy 1.x.
+alloy:
+  clustering:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  configMap:
+    create: true
+    content: |
+      // ---------- logs: every container of every pod -> Loki ----------
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app"]
+          separator     = ""
+          regex         = "(.+)"
+          target_label  = "app"
+        }
+        // only tail pods scheduled on the node this Alloy instance runs on
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.observability.svc:3100/loki/api/v1/push"
+        }
+        external_labels = {
+          cluster = "oncall-137",
+        }
+      }
+
+      // ---------- metrics: cAdvisor on this node + the OnCall exporter -> Mimir ----------
+      discovery.kubernetes "nodes" {
+        role = "node"
+      }
+
+      discovery.relabel "cadvisor" {
+        targets = discovery.kubernetes.nodes.targets
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+        rule {
+          target_label = "__metrics_path__"
+          replacement  = "/metrics/cadvisor"
+        }
+      }
+
+      prometheus.scrape "cadvisor" {
+        targets           = discovery.relabel.cadvisor.output
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.cadvisor.receiver]
+      }
+
+      prometheus.relabel "cadvisor" {
+        // keep the container-level series that dashboards actually use
+        rule {
+          source_labels = ["__name__"]
+          regex = "container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total)"
+          action = "keep"
+        }
+        rule {
+          source_labels = ["container"]
+          regex         = "^$|POD"
+          action        = "drop"
+        }
+        forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
+      prometheus.scrape "oncall_exporter" {
+        targets = [{
+          "__address__" = "oncall-engine.default.svc:8080",
+          "job"         = "oncall-exporter",
+        }]
+        metrics_path    = "/metrics/"
+        scrape_interval = "30s"
+        forward_to      = [prometheus.remote_write.mimir.receiver]
+      }
+
+      prometheus.remote_write "mimir" {
+        endpoint {
+          url = "http://mimir.observability.svc:9009/api/v1/push"
+        }
+        external_labels = {
+          cluster = "oncall-137",
+        }
+      }
+  extraEnv:
+    - name: HOSTNAME_NODE
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+
+controller:
+  type: daemonset

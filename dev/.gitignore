@@ -26,3 +26,5 @@
 !grafana/provisioning/plugins/grafana-oncall-app-provisioning.yaml
 
 !helm-kind.yml
+!observability/
+!observability/*

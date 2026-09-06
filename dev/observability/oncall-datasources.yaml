@@ -1,0 +1,22 @@
+# Extra values for the OnCall release: Grafana datasources for the Loki and Mimir installed by
+# dev/observability/install.sh. Apply together with dev/helm-kind.yml.
+grafana:
+  datasources:
+    observability.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          uid: loki
+          type: loki
+          access: proxy
+          url: http://loki.observability.svc:3100
+          editable: false
+        - name: Mimir
+          uid: mimir
+          type: prometheus
+          access: proxy
+          url: http://mimir.observability.svc:9009/prometheus
+          editable: false
+          jsonData:
+            prometheusType: Mimir
+            timeInterval: 30s
