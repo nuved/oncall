@@ -109,9 +109,10 @@ alloy:
           regex = "up|container_(cpu_usage_seconds_total|memory_working_set_bytes|network_.*_bytes_total)"
           action = "keep"
         }
+        // drop the per-pod cgroup totals and the pause container, but never the scrape's own up series
         rule {
-          source_labels = ["container"]
-          regex         = "^$|POD"
+          source_labels = ["__name__", "container"]
+          regex         = "container_.*;(|POD)"
           action        = "drop"
         }
         forward_to = [prometheus.remote_write.mimir.receiver]
