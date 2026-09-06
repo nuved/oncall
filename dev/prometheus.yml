@@ -3,6 +3,13 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: prometheus
+  # OnCall engine exporter (needs FEATURE_PROMETHEUS_EXPORTER_ENABLED=True on the engine).
+  # The engine is scraped through the host port because Django rejects the compose hostname
+  # "oncall_engine" (underscores are not valid in a Host header). Change 8080 if you remap the port.
+  - job_name: oncall
+    metrics_path: /metrics/
     static_configs:
       - targets: ["host.docker.internal:8080"]
+    # If PROMETHEUS_EXPORTER_SECRET is set on the engine, uncomment and use the same value:
+    # authorization:
+    #   credentials: <PROMETHEUS_EXPORTER_SECRET>

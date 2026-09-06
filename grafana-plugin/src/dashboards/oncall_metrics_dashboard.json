@@ -163,7 +163,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -249,7 +251,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -598,7 +602,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -714,7 +720,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -847,7 +855,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -964,7 +974,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -1207,7 +1219,9 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
@@ -1254,7 +1268,9 @@
   ],
   "refresh": false,
   "schemaVersion": 39,
-  "tags": ["oncall"],
+  "tags": [
+    "oncall"
+  ],
   "templating": {
     "list": [
       {
@@ -1278,125 +1294,109 @@
       },
       {
         "current": {
-          "selected": true,
           "text": "oncall_alert_groups_total",
           "value": "oncall_alert_groups_total"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "metrics(alert_groups_total)",
+        "description": "Metric name used by every panel. A constant so the dashboard does not depend on a metrics() variable query, which returns nothing on Grafana 13.",
         "hide": 2,
-        "includeAll": false,
-        "label": "alert_groups_total",
-        "multi": false,
         "name": "alert_groups_total",
-        "options": [],
-        "query": {
-          "query": "metrics(alert_groups_total)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": true,
-        "sort": 0,
-        "type": "query"
+        "options": [
+          {
+            "selected": true,
+            "text": "oncall_alert_groups_total",
+            "value": "oncall_alert_groups_total"
+          }
+        ],
+        "query": "oncall_alert_groups_total",
+        "skipUrlSync": false,
+        "type": "constant"
       },
       {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
+        "current": {
+          "text": "oncall_alert_groups_response_time_seconds_count",
+          "value": "oncall_alert_groups_response_time_seconds_count"
         },
-        "definition": "metrics(alert_groups_response_time_seconds_count)",
+        "description": "Metric name used by every panel. A constant so the dashboard does not depend on a metrics() variable query, which returns nothing on Grafana 13.",
         "hide": 2,
-        "includeAll": false,
-        "label": "alert_groups_response_time_seconds_count",
-        "multi": false,
         "name": "alert_groups_response_time_seconds_count",
-        "options": [],
-        "query": {
-          "query": "metrics(alert_groups_response_time_seconds_count)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
+        "options": [
+          {
+            "selected": true,
+            "text": "oncall_alert_groups_response_time_seconds_count",
+            "value": "oncall_alert_groups_response_time_seconds_count"
+          }
+        ],
+        "query": "oncall_alert_groups_response_time_seconds_count",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "constant"
       },
       {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
+        "current": {
+          "text": "oncall_alert_groups_response_time_seconds_sum",
+          "value": "oncall_alert_groups_response_time_seconds_sum"
         },
-        "definition": "metrics(alert_groups_response_time_seconds_sum)",
+        "description": "Metric name used by every panel. A constant so the dashboard does not depend on a metrics() variable query, which returns nothing on Grafana 13.",
         "hide": 2,
-        "includeAll": false,
-        "label": "alert_groups_response_time_seconds_sum",
-        "multi": false,
         "name": "alert_groups_response_time_seconds_sum",
-        "options": [],
-        "query": {
-          "query": "metrics(alert_groups_response_time_seconds_sum)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
+        "options": [
+          {
+            "selected": true,
+            "text": "oncall_alert_groups_response_time_seconds_sum",
+            "value": "oncall_alert_groups_response_time_seconds_sum"
+          }
+        ],
+        "query": "oncall_alert_groups_response_time_seconds_sum",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "constant"
       },
       {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
+        "current": {
+          "text": "oncall_alert_groups_response_time_seconds_bucket",
+          "value": "oncall_alert_groups_response_time_seconds_bucket"
         },
-        "definition": "metrics(alert_groups_response_time_seconds_bucket)",
+        "description": "Metric name used by every panel. A constant so the dashboard does not depend on a metrics() variable query, which returns nothing on Grafana 13.",
         "hide": 2,
-        "includeAll": false,
-        "label": "alert_groups_response_time_seconds_bucket",
-        "multi": false,
         "name": "alert_groups_response_time_seconds_bucket",
-        "options": [],
-        "query": {
-          "query": "metrics(alert_groups_response_time_seconds_bucket)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
+        "options": [
+          {
+            "selected": true,
+            "text": "oncall_alert_groups_response_time_seconds_bucket",
+            "value": "oncall_alert_groups_response_time_seconds_bucket"
+          }
+        ],
+        "query": "oncall_alert_groups_response_time_seconds_bucket",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "constant"
       },
       {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
+        "current": {
+          "text": "oncall_user_was_notified_of_alert_groups_total",
+          "value": "oncall_user_was_notified_of_alert_groups_total"
         },
-        "definition": "metrics(user_was_notified_of_alert_groups_total)",
+        "description": "Metric name used by every panel. A constant so the dashboard does not depend on a metrics() variable query, which returns nothing on Grafana 13.",
         "hide": 2,
-        "includeAll": false,
-        "label": "user_was_notified_of_alert_groups_total",
-        "multi": false,
         "name": "user_was_notified_of_alert_groups_total",
-        "options": [],
-        "query": {
-          "query": "metrics(user_was_notified_of_alert_groups_total)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
+        "options": [
+          {
+            "selected": true,
+            "text": "oncall_user_was_notified_of_alert_groups_total",
+            "value": "oncall_user_was_notified_of_alert_groups_total"
+          }
+        ],
+        "query": "oncall_user_was_notified_of_alert_groups_total",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "type": "constant"
       },
       {
         "allValue": ".+",
         "current": {
           "selected": true,
-          "text": ["All"],
-          "value": ["$__all"]
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "prometheus",
@@ -1423,8 +1423,12 @@
         "allValue": ".+",
         "current": {
           "selected": true,
-          "text": ["All"],
-          "value": ["$__all"]
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "prometheus",
@@ -1451,8 +1455,12 @@
         "allValue": ".+",
         "current": {
           "selected": true,
-          "text": ["All"],
-          "value": ["$__all"]
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "prometheus",
@@ -1479,8 +1487,12 @@
         "allValue": "($^)|(.+)",
         "current": {
           "selected": true,
-          "text": ["All"],
-          "value": ["$__all"]
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "prometheus",
@@ -1511,12 +1523,34 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
-    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
   },
   "timezone": "browser",
   "title": "OnCall Insights",
   "version": 5,
   "revision": 5,
-  "weekStart": ""
+  "weekStart": "",
+  "uid": "oncall-insights"
 }

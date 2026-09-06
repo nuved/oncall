@@ -105,8 +105,14 @@ const getVariables = ({ isOpenSource, datasource, stack }: InsightsConfig) => ({
       query: 'metrics(user_was_notified_of_alert_groups_total)',
       refId: 'PrometheusVariableQueryEditor-VariableQuery',
     },
+    // Same treatment as alertGroupsTotal: seeded single value, never taken from the URL. On Grafana 13
+    // the metrics() query resolves to nothing, which turned the metric name into an empty string and
+    // made the "users notified" panels sum every OnCall series.
+    isMulti: false,
+    skipUrlSync: true,
+    text: 'oncall_user_was_notified_of_alert_groups_total',
+    value: 'oncall_user_was_notified_of_alert_groups_total',
     hide: 2,
-    refresh: 2,
   }),
   alertGroupsResponseTimeBucket: new QueryVariable({
     ...DEFAULT_VARIABLE_CONFIG,
@@ -118,6 +124,10 @@ const getVariables = ({ isOpenSource, datasource, stack }: InsightsConfig) => ({
       query: 'metrics(alert_groups_response_time_seconds_bucket)',
       refId: 'PrometheusVariableQueryEditor-VariableQuery',
     },
+    isMulti: false,
+    skipUrlSync: true,
+    text: 'oncall_alert_groups_response_time_seconds_bucket',
+    value: 'oncall_alert_groups_response_time_seconds_bucket',
     hide: 2,
   }),
   alertGroupsResponseTimeSum: new QueryVariable({
@@ -130,6 +140,10 @@ const getVariables = ({ isOpenSource, datasource, stack }: InsightsConfig) => ({
       query: 'metrics(alert_groups_response_time_seconds_sum)',
       refId: 'PrometheusVariableQueryEditor-VariableQuery',
     },
+    isMulti: false,
+    skipUrlSync: true,
+    text: 'oncall_alert_groups_response_time_seconds_sum',
+    value: 'oncall_alert_groups_response_time_seconds_sum',
     hide: 2,
   }),
   alertGroupsResponseTimeCount: new QueryVariable({
@@ -142,6 +156,10 @@ const getVariables = ({ isOpenSource, datasource, stack }: InsightsConfig) => ({
       query: 'metrics(alert_groups_response_time_seconds_count)',
       refId: 'PrometheusVariableQueryEditor-VariableQuery',
     },
+    isMulti: false,
+    skipUrlSync: true,
+    text: 'oncall_alert_groups_response_time_seconds_count',
+    value: 'oncall_alert_groups_response_time_seconds_count',
     hide: 2,
   }),
 });

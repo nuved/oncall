@@ -181,6 +181,12 @@ Add `prometheus` to your `COMPOSE_PROFILES` and set `FEATURE_PROMETHEUS_EXPORTER
 is added (or add it manually using the UI; Prometheus will be running in `host.docker.internal:9090`
 by default, using default settings).
 
+Prometheus scrapes the engine at `host.docker.internal:8080/metrics/` (`dev/prometheus.yml`; adjust
+the port if you remap the engine's). If you also set `PROMETHEUS_EXPORTER_SECRET`, the endpoint requires
+`Authorization: Bearer <secret>`: uncomment the `authorization` block in `dev/prometheus.yml` and put
+the same value there. The "OnCall Insights" dashboard (Dashboards > OnCall Insights) reads from this
+datasource; without a running Prometheus every panel shows "connection refused" on port 9090.
+
 ### Django Silk Profiling
 
 In order to setup [`django-silk`](https://github.com/jazzband/django-silk) for local profiling, perform the following
