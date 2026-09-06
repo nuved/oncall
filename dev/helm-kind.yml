@@ -65,6 +65,13 @@ grafana:
   replicas: 1
   service:
     type: ClusterIP
+  grafana.ini:
+    server:
+      # reached through `kubectl port-forward svc/<release>-grafana 3001:80`; served at the root,
+      # not under /grafana/, so http://localhost:3001 works and redirects stay on localhost
+      domain: localhost:3001
+      root_url: "%(protocol)s://%(domain)s/"
+      serve_from_sub_path: false
 
 prometheus:
   enabled: true
