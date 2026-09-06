@@ -85,6 +85,10 @@ alloy:
           target_label = "__metrics_path__"
           replacement  = "/metrics/cadvisor"
         }
+        rule {
+          target_label = "job"
+          replacement  = "cadvisor"
+        }
       }
 
       prometheus.scrape "cadvisor" {
@@ -102,7 +106,7 @@ alloy:
         // keep the container-level series that dashboards actually use
         rule {
           source_labels = ["__name__"]
-          regex = "up|container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total)"
+          regex = "up|container_(cpu_usage_seconds_total|memory_working_set_bytes|network_.*_bytes_total)"
           action = "keep"
         }
         rule {
@@ -124,6 +128,10 @@ alloy:
         rule {
           source_labels = ["__meta_kubernetes_node_name"]
           target_label  = "node"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "kubelet"
         }
       }
 
