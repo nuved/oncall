@@ -734,3 +734,30 @@ def test_remove_integration_config_from_each_contact_point(
                 assert receiver_config.get("url") != TEST_INTEGRATION_URL
             for receiver_config in receiver.get("oncall_configs", []):
                 assert receiver_config.get("url") != TEST_INTEGRATION_URL
+
+
+@patch(
+    "apps.alerts.models.AlertReceiveChannel.integration_url",
+    new_callable=PropertyMock(return_value=TEST_INTEGRATION_URL),
+)
+@pytest.mark.django_db
+def test_disconnect_contact_point_still_referenced(
+    mocked_integration_url, make_organization, make_alert_receive_channel
+):
+    organization = make_organization()
+    alert_receive_channel = make_alert_receive_channel(
+        organization,
+        integration=AlertReceiveChannel.INTEGRATION_GRAFANA_ALERTING,
+    )
+    sync_manager = alert_receive_channel.grafana_alerting_sync_manager
+    conflict = (None, {"status_code": 409, "connected": True, "message": "Conflict", "url": ""})
+    with patch(
+        "apps.grafana_plugin.helpers.GrafanaAPIClient.get_provisioned_contact_points",
+        return_value=(provisioned_entries(GRAFANA_ALERTMANAGER_CONFIG), {}),
+    ), patch(
+        "apps.grafana_plugin.helpers.GrafanaAPIClient.delete_provisioned_contact_point",
+        return_value=conflict,
+    ):
+        result, error = sync_manager.disconnect_contact_point("grafana", ALERTMANAGER_ACTIVE_RECEIVER_CONNECTED)
+        assert result is False
+        assert error.startswith("Contact point is still used by a notification policy or an alert rule")

@@ -242,7 +242,14 @@ class GrafanaAlertingSyncManager:
         if not connected:
             return False, "OnCall connection was not found in selected contact point"
         for entry in connected:
-            if not self.delete_provisioned_contact_point(self.client, entry["uid"]):
+            deleted, status_code = self.delete_provisioned_contact_point(self.client, entry["uid"])
+            if not deleted:
+                if status_code == status.HTTP_409_CONFLICT:
+                    return (
+                        False,
+                        "Contact point is still used by a notification policy or an alert rule in Grafana; "
+                        "detach it there first",
+                    )
                 return False, "Failed to update Alertmanager config"
         return True, ""
 
@@ -267,9 +274,11 @@ class GrafanaAlertingSyncManager:
         return True
 
     @classmethod
-    def delete_provisioned_contact_point(cls, client: "GrafanaAPIClient", uid: str) -> bool:
+    def delete_provisioned_contact_point(cls, client: "GrafanaAPIClient", uid: str) -> Tuple[bool, int]:
+        """Returns (deleted, http status); Grafana answers 409 when the contact point is still referenced"""
         _, response_info = client.delete_provisioned_contact_point(uid)
-        if response_info["status_code"] not in (
+        status_code = response_info["status_code"]
+        if status_code not in (
             status.HTTP_200_OK,
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
@@ -277,8 +286,8 @@ class GrafanaAlertingSyncManager:
             logger.warning(
                 f"GrafanaAlertingSyncManager: Failed to delete provisioned contact point {uid}; response: {response_info}"
             )
-            return False
-        return True
+            return False, status_code
+        return True, status_code
 
     # API requests to get/update Alertmanager config
     @classmethod
