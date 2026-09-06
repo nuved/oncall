@@ -29,6 +29,8 @@ loki:
 
 singleBinary:
   replicas: 1
+  # time to flush open chunks to the local store on shutdown (no replica to fall back on)
+  terminationGracePeriodSeconds: 120
   persistence:
     enabled: true
     size: 2Gi

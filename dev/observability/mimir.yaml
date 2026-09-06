@@ -47,6 +47,8 @@ data:
         dir: /data/blocks
       tsdb:
         dir: /data/tsdb
+        # a single ingester with no replica: write the in-memory series to a block on shutdown
+        flush_blocks_on_shutdown: true
       bucket_store:
         sync_dir: /data/tsdb-sync
     ruler:
@@ -99,6 +101,8 @@ spec:
       labels:
         app.kubernetes.io/name: mimir
     spec:
+      # long enough for the shutdown flush of up to two hours of in-memory series
+      terminationGracePeriodSeconds: 120
       securityContext:
         fsGroup: 10001
         runAsUser: 10001
