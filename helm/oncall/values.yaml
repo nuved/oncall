@@ -688,6 +688,11 @@ grafana:
   # With a persistent volume, a rolling update starts the new Grafana while the old one still holds
   # the lock on Grafana 13's search index in that volume, and the new pod crash-loops. Recreate
   # stops the old pod first; the seconds of downtime are cheaper than a stuck upgrade.
+  # Existing releases installed with Helm 4 (server-side apply) need a one-time patch before the
+  # upgrade, because the API server keeps the defaulted rollingUpdate block next to the new type:
+  #   kubectl patch deploy <release>-grafana --type=json -p \
+  #     '[{"op":"remove","path":"/spec/strategy/rollingUpdate"},
+  #       {"op":"replace","path":"/spec/strategy/type","value":"Recreate"}]'
   deploymentStrategy:
     type: Recreate
   # Disable psp as PodSecurityPolicy is deprecated in v1.21+, unavailable in v1.25+
