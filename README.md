@@ -105,30 +105,35 @@ We prepared multiple environments:
 - [developer](./dev/README.md)
 - hobby (described in the following steps)
 
-1. Download [`docker-compose.yml`](docker-compose.yml):
+1. Download [`docker-compose.yml`](docker-compose.yml) and the credential generator
+   [`scripts/init-env.sh`](scripts/init-env.sh):
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/nuved/oncall/dev/docker-compose.yml -o docker-compose.yml
+   mkdir -p scripts
+   curl -fsSL https://raw.githubusercontent.com/nuved/oncall/dev/scripts/init-env.sh -o scripts/init-env.sh
+   chmod +x scripts/init-env.sh
    ```
 
-2. Set variables:
+   Working from a clone of this repository? Both files are already there, so skip to step 2.
+
+2. Generate credentials:
 
    ```bash
-   echo "DOMAIN=http://localhost:8080
-   # Remove 'with_grafana' below if you want to use existing grafana
-   # Add 'with_prometheus' below to optionally enable a local prometheus for oncall metrics
-   # e.g. COMPOSE_PROFILES=with_grafana,with_prometheus
-   COMPOSE_PROFILES=with_grafana
-   # to setup an auth token for prometheus exporter metrics:
-   # PROMETHEUS_EXPORTER_SECRET=my_random_prometheus_secret
-   # also, make sure to enable the /metrics endpoint:
-   # FEATURE_PROMETHEUS_EXPORTER_ENABLED=True
-   SECRET_KEY=my_random_secret_must_be_more_than_32_characters_long" > .env
+   ./scripts/init-env.sh
    ```
 
-3. (Optional) If you want to enable/setup the prometheus metrics exporter
-(besides the changes above), create a `prometheus.yml` file (replacing
-`my_random_prometheus_secret` accordingly), next to your `docker-compose.yml`:
+   This writes a `.env` file (mode 600) next to `docker-compose.yml`, containing a randomly generated
+   `SECRET_KEY`, database and broker passwords, and a Grafana admin password, and prints the Grafana
+   admin login once. Nothing is hard-coded and there is nothing to copy out of these docs. The file
+   also carries the settings you may want to change: `DOMAIN`, and `COMPOSE_PROFILES` (remove
+   `with_grafana` to use an existing Grafana, add `with_prometheus` for a local Prometheus scraping
+   OnCall metrics). [`.env.example`](.env.example) lists every variable the compose files read.
+
+3. (Optional) If you want to enable/setup the prometheus metrics exporter, set
+`FEATURE_PROMETHEUS_EXPORTER_ENABLED=True` and `PROMETHEUS_EXPORTER_SECRET=<your token>` in the
+generated `.env`, then create a `prometheus.yml` file (using the same token in place of
+`my_random_prometheus_secret`), next to your `docker-compose.yml`:
 
    ```bash
    echo "global:
@@ -155,18 +160,28 @@ We prepared multiple environments:
 
 5. Provision the plugin (If you run Grafana outside the included docker files install the plugin before these steps):
 
-   If you are using the included docker compose file use `admin`/`admin` credentials and `localhost:3000` to
-   perform this task.  If you have configured Grafana differently adjust your credentials and hostnames accordingly.
+   If you are using the included docker compose file use `localhost:3000` and the `admin` user with the
+   password `scripts/init-env.sh` printed (it is stored in `.env` as `GRAFANA_ADMIN_PASSWORD`).  If you have
+   configured Grafana differently adjust your credentials and hostnames accordingly.
 
    ```bash
+   # Load the generated Grafana admin credentials into this shell
+   set -a && . ./.env && set +a
+
    # Note: onCallApiUrl 'engine' and grafanaUrl 'grafana' use the name from the docker compose file.  If you are 
    # running your grafana or oncall engine instance with another hostname adjust accordingly. 
-   curl -X POST 'http://admin:admin@localhost:3000/api/plugins/grafana-oncall-app/settings' -H "Content-Type: application/json" -d '{"enabled":true, "jsonData":{"stackId":5, "orgId":100, "onCallApiUrl":"http://engine:8080", "grafanaUrl":"http://grafana:3000"}}'
-   curl -X POST 'http://admin:admin@localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/install'
+   curl -u "$GRAFANA_USER:$GRAFANA_ADMIN_PASSWORD" -X POST 'http://localhost:3000/api/plugins/grafana-oncall-app/settings' -H "Content-Type: application/json" -d '{"enabled":true, "jsonData":{"stackId":5, "orgId":100, "onCallApiUrl":"http://engine:8080", "grafanaUrl":"http://grafana:3000"}}'
+   curl -u "$GRAFANA_USER:$GRAFANA_ADMIN_PASSWORD" -X POST 'http://localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/install'
    ```
 
-6. Start using OnCall, log in to Grafana with credentials
-   as defined above: `admin`/`admin`
+6. Start using OnCall: log in to Grafana at `localhost:3000` as `admin`, with the password that
+   `scripts/init-env.sh` printed in step 2. It stays available in `.env` as `GRAFANA_ADMIN_PASSWORD`.
+
+   To rotate the credentials, run `./scripts/init-env.sh --force` (the previous file is kept as
+   `.env.bak.<timestamp>`) and restart the stack. Two caveats on an installation that already has data:
+   Grafana only applies `GF_SECURITY_ADMIN_PASSWORD` when it initialises its database, so change the
+   admin password in the Grafana UI as well, and a new `SECRET_KEY` invalidates existing sessions,
+   tokens and anything the engine has already encrypted.
 
 7. Enjoy! Check our [OSS docs](https://grafana.com/docs/oncall/latest/open-source/) if you want to set up
    Slack, Telegram, Twilio or SMS/calls through Grafana Cloud.
@@ -174,18 +189,20 @@ We prepared multiple environments:
 ## Troubleshooting
 
 Here are some API calls that can be made to help if you are having difficulty connecting Grafana and OnCall.
-(Modify parameters to match your credentials and environment)
+(Modify parameters to match your credentials and environment; these load the Grafana admin credentials
+from the generated `.env`)
 
    ```bash
    # Use this to get more information about the connection between Grafana and OnCall
-   curl -X GET 'http://admin:admin@localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/status'
+   set -a && . ./.env && set +a
+   curl -u "$GRAFANA_USER:$GRAFANA_ADMIN_PASSWORD" -X GET 'http://localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/status'
    ```
 
    ```bash
    # If you added a user or changed permissions and don't see it show up in OnCall you can manually trigger sync.
    # Note: This is called automatically when the app is loaded (page load/refresh) but there is a 5 min timeout so 
    # that it does not generate unnecessary activity.
-   curl -X POST 'http://admin:admin@localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/sync'
+   curl -u "$GRAFANA_USER:$GRAFANA_ADMIN_PASSWORD" -X POST 'http://localhost:3000/api/plugins/grafana-oncall-app/resources/plugin/sync'
    ```
 
 ## Update version

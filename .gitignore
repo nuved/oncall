@@ -7,6 +7,8 @@ venv
 .idea
 .DS_Store
 .env
+# backups written by scripts/init-env.sh --force; they hold live credentials
+.env.bak.*
 
 pnpm.lock
 node_modules

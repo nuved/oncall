@@ -133,6 +133,9 @@ cluster/up:  ## (beta) create a local development k8s cluster
 cluster/down: ## (beta) delete local development k8s cluster
 	ctlptl delete -f dev/kind-config.yaml
 
+init-env:  ## generate a .env with random credentials for the hobby docker compose setup
+	./scripts/init-env.sh
+
 start:  ## start all of the docker containers
 	$(call run_docker_compose_command,up --remove-orphans -d)
 
