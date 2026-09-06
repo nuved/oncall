@@ -43,6 +43,14 @@ helm install \
     grafana/oncall
 ```
 
+Any release name works. When Grafana is installed as part of the release, a post-install/post-upgrade
+hook Job (`oncall.pluginInstallJob`, on by default) runs the plugin's install handshake with the
+generated admin credentials, so the plugin is connected to the engine as soon as `helm install`
+returns; set `oncall.pluginInstallJob.enabled=false` to do that step from the plugin page yourself.
+With `prometheus.enabled=true` the bundled Prometheus scrapes the OnCall exporter and is provisioned
+as a Grafana datasource (uid `oncall-prometheus`) for the Insights dashboard. Set
+`grafana.grafana.ini.server.domain` to the public host when you expose Grafana through the ingress.
+
 Follow the `helm install` output to finish setting up Grafana OnCall backend and Grafana OnCall frontend plugin e.g.
 
 ```bash
