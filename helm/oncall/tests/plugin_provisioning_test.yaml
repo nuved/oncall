@@ -14,6 +14,9 @@ tests:
       - matchRegex:
           path: data["grafana-oncall-app-provisioning.yaml"]
           pattern: "onCallApiUrl: http://my-release-oncall-engine:8080"
+      - matchRegex:
+          path: data["grafana-oncall-app-provisioning.yaml"]
+          pattern: "grafanaUrl: http://my-release-grafana"
 
   - it: provisions the bundled Prometheus as a datasource when prometheus is enabled
     template: plugin-provisioning.yaml

@@ -19,6 +19,10 @@ data:
           stackId: 5
           orgId: 100
           onCallApiUrl: http://{{ include "oncall.engine.fullname" . }}:8080
+          # the plugin backend calls Grafana's own API (user sync, settings) through this address;
+          # without it the plugin falls back to root_url, which may be a public address that does
+          # not resolve inside the cluster
+          grafanaUrl: http://{{ include "oncall.grafana.fullname" . }}
   # Datasource for the Insights dashboard and page: the bundled Prometheus that scrapes the OnCall
   # exporter. Always present as a key (the volume mount references it), empty when Prometheus is off.
   datasources.yaml: |
