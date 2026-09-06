@@ -46,3 +46,4 @@ metric_now: Grafana stable releases the fork is verified on
 | 2026-09-03 | Workflows run on ubuntu-latest; Grafana-internal workflows deleted | The 16-core label and the vault/Docker Hub/GCS secrets do not exist for this fork. |
 | 2026-09-03 | Backend test matrix runs only the RBAC-off mode | The operator targets Grafana OSS; fine-grained RBAC exists only on Grafana Enterprise and Cloud. |
 | 2026-09-03 | MariaDB subchart pinned to bitnamilegacy 12.0.2 | The floating `latest` became 13.0.1 on 2026-09-03 and fails the chart's own probe. |
+| 2026-09-06 | SaaS shape drafted in saas-design.md (Grafana per tenant via the tenancy operator, shared engine, per-seat pricing with free Viewers, metered telephony, EU hosting); not yet a bet, awaiting the operator's call on free tier vs trial and hosting region | the operator asked how to run OnCall as a service; the shape reuses how Grafana Cloud ran the same engine |
