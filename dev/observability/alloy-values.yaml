@@ -482,11 +482,34 @@ alloy:
         forward_to = [prometheus.remote_write.mimir.receiver]
       }
 
+      // the OnCall engine, found by the chart's labels in whatever namespace the release lives
+      discovery.relabel "oncall_exporter" {
+        targets = discovery.kubernetes.endpoints.targets
+        rule {
+          source_labels = [
+            "__meta_kubernetes_service_label_app_kubernetes_io_component",
+            "__meta_kubernetes_endpoint_port_name",
+          ]
+          regex  = "engine;http"
+          action = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_service_name"]
+          regex         = ".*-external"
+          action        = "drop"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "oncall-exporter"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+      }
+
       prometheus.scrape "oncall_exporter" {
-        targets = [{
-          "__address__" = "oncall-engine.default.svc:8080",
-          "job"         = "oncall-exporter",
-        }]
+        targets         = discovery.relabel.oncall_exporter.output
         metrics_path    = "/metrics/"
         scrape_interval = "30s"
         forward_to      = [prometheus.remote_write.mimir.receiver]

@@ -38,7 +38,7 @@ kubectl --context "$CTX" -n "$RELEASE_NS" create configmap oncall-k8s-dashboards
   --from-file="$HERE/dashboards" --dry-run=client -o yaml | kubectl --context "$CTX" apply -f -
 
 echo ">> Grafana datasources and dashboards on the $RELEASE release"
-helm upgrade "$RELEASE" "$ROOT/helm/oncall" --kube-context "$CTX" --reuse-values \
+helm upgrade "$RELEASE" "$ROOT/helm/oncall" --kube-context "$CTX" --namespace "$RELEASE_NS" --reuse-values \
   -f "$HERE/oncall-datasources.yaml" -f "$HERE/oncall-dashboards.yaml" --wait --timeout 10m
 
 echo "done. Dashboards: folders Kubernetes, Kubernetes control plane, Logs."

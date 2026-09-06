@@ -43,7 +43,7 @@ and Cilium operator dashboards appear in a **Cilium** folder when the cluster wa
 
 ```bash
 kind create cluster --name oncall --image kindest/node:v1.37.0
-helm install oncall ./helm/oncall -f dev/helm-kind.yml --wait --timeout 15m
+helm install oncall ./helm/oncall -n oncall --create-namespace -f dev/helm-kind.yml --wait --timeout 15m
 dev/observability/install.sh kind-oncall oncall
 kubectl port-forward svc/oncall-grafana 3001:80
 ```

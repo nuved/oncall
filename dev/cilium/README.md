@@ -6,7 +6,7 @@ instead of the Kubernetes etcd or CRDs.
 
 ```bash
 dev/cilium/install.sh oncall                      # kind cluster "oncall" + etcd + Cilium
-helm install oncall ./helm/oncall -f dev/helm-kind.yml --kube-context kind-oncall --wait --timeout 15m
+helm install oncall ./helm/oncall -n oncall --create-namespace -f dev/helm-kind.yml --kube-context kind-oncall --wait --timeout 15m
 dev/observability/install.sh kind-oncall oncall   # Loki, Mimir, Alloy, dashboards (Cilium's included)
 ```
 
