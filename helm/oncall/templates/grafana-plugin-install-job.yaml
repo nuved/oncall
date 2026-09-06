@@ -1,0 +1,81 @@
+{{- /*
+Runs the plugin's one-time install handshake against the engine after install/upgrade, so the bundled
+Grafana is connected to OnCall without an admin opening the plugin page first. Only meaningful with
+the Grafana subchart (it needs the admin credentials the subchart generates or the ones you pointed
+grafana.admin.existingSecret at).
+*/ -}}
+{{- if and .Values.grafana.enabled .Values.oncall.pluginInstallJob.enabled }}
+{{- $grafanaSecret := .Values.grafana.admin.existingSecret | default (include "oncall.grafana.fullname" .) }}
+{{- $userKey := .Values.grafana.admin.userKey | default "admin-user" }}
+{{- $passwordKey := .Values.grafana.admin.passwordKey | default "admin-password" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "oncall.fullname" . }}-grafana-plugin-install
+  labels:
+    {{- include "oncall.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.oncall.pluginInstallJob.backoffLimit }}
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana-plugin-install
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: plugin-install
+          image: {{ .Values.oncall.pluginInstallJob.image | quote }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GRAFANA_URL
+              value: http://{{ include "oncall.grafana.fullname" . }}
+            - name: GRAFANA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $grafanaSecret }}
+                  key: {{ $userKey }}
+            - name: GRAFANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $grafanaSecret }}
+                  key: {{ $passwordKey }}
+          command:
+            - sh
+            - -ec
+            - |
+              echo "waiting for Grafana at $GRAFANA_URL"
+              for i in $(seq 1 60); do
+                if curl -fsS -o /dev/null "$GRAFANA_URL/api/health"; then break; fi
+                sleep 5
+              done
+              echo "running the OnCall plugin install handshake"
+              for i in $(seq 1 12); do
+                code=$(curl -sS -o /tmp/install.out -w '%{http_code}' -u "$GRAFANA_USER:$GRAFANA_PASSWORD" \
+                  -X POST "$GRAFANA_URL/api/plugins/grafana-oncall-app/resources/plugin/install")
+                if [ "$code" = "200" ]; then break; fi
+                echo "install returned HTTP $code, retrying"; cat /tmp/install.out; echo; sleep 10
+              done
+              [ "$code" = "200" ] || exit 1
+              curl -fsS -u "$GRAFANA_USER:$GRAFANA_PASSWORD" \
+                "$GRAFANA_URL/api/plugins/grafana-oncall-app/resources/plugin/status" \
+                | grep -q '"oncall_token":{"ok":true' && echo "plugin connected to the engine"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+{{- end }}

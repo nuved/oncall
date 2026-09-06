@@ -1,0 +1,87 @@
+suite: Grafana plugin provisioning and install job
+release:
+  name: my-release
+templates:
+  - plugin-provisioning.yaml
+  - grafana-plugin-install-job.yaml
+tests:
+  - it: provisioning points the plugin at this release's engine service
+    template: plugin-provisioning.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: oncall-grafana-plugin-provisioning
+      - matchRegex:
+          path: data["grafana-oncall-app-provisioning.yaml"]
+          pattern: "onCallApiUrl: http://my-release-oncall-engine:8080"
+
+  - it: provisions the bundled Prometheus as a datasource when prometheus is enabled
+    template: plugin-provisioning.yaml
+    set:
+      prometheus.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "url: http://my-release-prometheus-server"
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "uid: oncall-prometheus"
+
+  - it: keeps an empty datasource file when prometheus is disabled
+    template: plugin-provisioning.yaml
+    set:
+      prometheus.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "datasources: \\[\\]"
+
+  - it: renders the plugin install hook job with the grafana admin secret
+    template: grafana-plugin-install-job.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - equal:
+          path: metadata.name
+          value: my-release-oncall-grafana-plugin-install
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: post-install,post-upgrade
+      - equal:
+          path: spec.template.spec.containers[0].env[0].value
+          value: http://my-release-grafana
+      - equal:
+          path: spec.template.spec.containers[0].env[2].valueFrom.secretKeyRef.name
+          value: my-release-grafana
+      - equal:
+          path: spec.template.spec.containers[0].env[2].valueFrom.secretKeyRef.key
+          value: admin-password
+
+  - it: uses grafana.admin.existingSecret for the install job when set
+    template: grafana-plugin-install-job.yaml
+    set:
+      grafana.admin.existingSecret: my-grafana-admin
+      grafana.admin.passwordKey: pw
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[2].valueFrom.secretKeyRef.name
+          value: my-grafana-admin
+      - equal:
+          path: spec.template.spec.containers[0].env[2].valueFrom.secretKeyRef.key
+          value: pw
+
+  - it: renders no install job when the grafana subchart is disabled
+    template: grafana-plugin-install-job.yaml
+    set:
+      grafana.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders no install job when switched off
+    template: grafana-plugin-install-job.yaml
+    set:
+      oncall.pluginInstallJob.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

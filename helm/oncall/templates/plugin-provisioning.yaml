@@ -1,7 +1,12 @@
+{{- /*
+Grafana app-plugin provisioning for the bundled Grafana subchart. The ConfigMap name is a fixed literal
+because the subchart's grafana.extraVolumes entry (values.yaml) that mounts it cannot be templated;
+the engine URL, however, follows the release name so any release name works, not only "helm-testing".
+*/ -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: helm-testing-grafana-plugin-provisioning
+  name: oncall-grafana-plugin-provisioning
   labels:
     app: {{ include "oncall.name" . }}
 data:
@@ -13,4 +18,19 @@ data:
         jsonData:
           stackId: 5
           orgId: 100
-          onCallApiUrl: http://helm-testing-oncall-engine:8080
+          onCallApiUrl: http://{{ include "oncall.engine.fullname" . }}:8080
+  # Datasource for the Insights dashboard and page: the bundled Prometheus that scrapes the OnCall
+  # exporter. Always present as a key (the volume mount references it), empty when Prometheus is off.
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    {{- if index .Values "prometheus" "enabled" }}
+      - name: Prometheus
+        uid: oncall-prometheus
+        type: prometheus
+        access: proxy
+        url: http://{{ .Release.Name }}-prometheus-server
+        isDefault: false
+        editable: false
+    {{- else }} []
+    {{- end }}

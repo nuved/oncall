@@ -3,8 +3,8 @@ base_url_protocol: http
 env:
   - name: GRAFANA_CLOUD_NOTIFICATIONS_ENABLED
     value: "False"
-  - name: FEATURE_PROMETHEUS_EXPORTER_ENABLED
-    value: "True"
+  # FEATURE_PROMETHEUS_EXPORTER_ENABLED comes from oncall.exporter.enabled below; listing it here too
+  # makes Helm 4 (server-side apply) reject the Deployment for a duplicate env key
   - name: DJANGO_SETTINGS_MODULE
     value: "settings.dev"
   - name: FEATURE_TELEGRAM_INTEGRATION_ENABLED

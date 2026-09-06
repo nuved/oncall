@@ -290,6 +290,13 @@ oncall:
   # startup commands (which configures the hot-reloading)
   devMode: false
 
+  # After install/upgrade, a Helm hook Job connects the bundled Grafana to the engine (the same
+  # handshake an admin otherwise triggers by opening the plugin page). Only used when grafana.enabled.
+  pluginInstallJob:
+    enabled: true
+    image: curlimages/curl:8.14.1
+    backoffLimit: 3
+
   # Override default MIRAGE_CIPHER_IV (must be 16 bytes long)
   # For existing installation, this should not be changed.
   # mirageCipherIV: 1234567890abcdef
@@ -609,6 +616,16 @@ externalRabbitmq:
 # It is recommended to host it separately from this release
 redis:
   enabled: true
+  image:
+    # The subchart's default, docker.io/bitnami/redis:6.2.7-debian-11-r11, was removed from Docker Hub
+    # when Bitnami retired its free catalog; the official image works with the subchart's start scripts
+    # (this is what the e2e suite has run on) and gets security updates.
+    registry: docker.io
+    repository: redis
+    tag: "7.4.6"
+  master:
+    # the rename-command list in the subchart assumes the Bitnami image layout
+    disableCommands: []
   auth:
     existingSecret:
 
@@ -644,7 +661,10 @@ grafana:
     tag: "13.2.1"
   grafana.ini:
     server:
-      domain: helm-testing-grafana
+      # The host Grafana is reached at. The default is the in-cluster service name; when you expose
+      # Grafana through the ingress, set this to the same host as base_url so links in
+      # notifications point at the public address. Rendered with tpl by the Grafana subchart.
+      domain: "{{ .Release.Name }}-grafana"
       root_url: "%(protocol)s://%(domain)s/grafana/"
       serve_from_sub_path: true
     feature_toggles:
@@ -668,11 +688,16 @@ grafana:
   extraVolumes:
     - name: provisioning
       configMap:
-        name: helm-testing-grafana-plugin-provisioning
+        # rendered by templates/plugin-provisioning.yaml; fixed name because this entry is not templated
+        name: oncall-grafana-plugin-provisioning
   extraVolumeMounts:
     - name: provisioning
       mountPath: /etc/grafana/provisioning/plugins/grafana-oncall-app-provisioning.yaml
       subPath: grafana-oncall-app-provisioning.yaml
+    # Prometheus datasource for the Insights dashboard (rendered only when prometheus.enabled)
+    - name: provisioning
+      mountPath: /etc/grafana/provisioning/datasources/oncall-prometheus.yaml
+      subPath: datasources.yaml
 
 externalGrafana:
   # Example: https://grafana.mydomain.com
