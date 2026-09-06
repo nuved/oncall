@@ -1,0 +1,93 @@
+# Extra values for the OnCall release: ready-made Grafana dashboards for the cluster, its control
+# plane and the logs, downloaded from grafana.com by the Grafana pod at start (needs outbound
+# internet) and wired to the Mimir and Loki datasources from oncall-datasources.yaml. Apply together
+# with dev/helm-kind.yml and oncall-datasources.yaml (install.sh does).
+grafana:
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: kubernetes
+          orgId: 1
+          folder: Kubernetes
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/kubernetes
+        - name: control-plane
+          orgId: 1
+          folder: Kubernetes control plane
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/control-plane
+        - name: logs
+          orgId: 1
+          folder: Logs
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/logs
+        - name: control-plane-logs
+          orgId: 1
+          folder: Logs
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/control-plane-logs
+  dashboards:
+    kubernetes:
+      # dotdc "Kubernetes / Views" set: cluster, namespaces, nodes, pods (kube-state-metrics + cAdvisor)
+      k8s-views-global:
+        gnetId: 15757
+        revision: 43
+        datasource: Mimir
+      k8s-views-namespaces:
+        gnetId: 15758
+        revision: 46
+        datasource: Mimir
+      k8s-views-nodes:
+        gnetId: 15759
+        revision: 40
+        datasource: Mimir
+      k8s-views-pods:
+        gnetId: 15760
+        revision: 39
+        datasource: Mimir
+      node-exporter-full:
+        gnetId: 1860
+        revision: 45
+        datasource: Mimir
+    control-plane:
+      k8s-system-api-server:
+        gnetId: 15761
+        revision: 21
+        datasource: Mimir
+      k8s-system-coredns:
+        gnetId: 15762
+        revision: 22
+        datasource: Mimir
+      etcd:
+        gnetId: 3070
+        revision: 3
+        datasource: Mimir
+    logs:
+      loki-kubernetes-logs:
+        gnetId: 15141
+        revision: 1
+        datasource:
+          - name: DS_LOKI
+            value: Loki
+      logs-app:
+        gnetId: 13639
+        revision: 2
+        datasource:
+          - name: DS_LOKI
+            value: Loki
+  # our own dashboard (dev/observability/dashboards/*.json), shipped as a ConfigMap by install.sh
+  dashboardsConfigMaps:
+    control-plane-logs: oncall-k8s-dashboards

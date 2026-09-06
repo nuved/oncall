@@ -184,6 +184,179 @@ alloy:
         forward_to      = [prometheus.remote_write.mimir.receiver]
       }
 
+      // ---------- control plane: API server, CoreDNS, etcd, controller-manager, scheduler, kube-proxy ----------
+      // etcd, the controller-manager, the scheduler and kube-proxy only listen on 127.0.0.1 of their node
+      // (kubeadm defaults), which is why this DaemonSet runs on the host network.
+      prometheus.scrape "apiserver" {
+        targets = [{
+          "__address__" = "kubernetes.default.svc:443",
+          "job"         = "kube-apiserver",
+        }]
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        }
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      discovery.relabel "coredns" {
+        targets = discovery.kubernetes.endpoints.targets
+        rule {
+          source_labels = [
+            "__meta_kubernetes_namespace",
+            "__meta_kubernetes_service_name",
+            "__meta_kubernetes_endpoint_port_name",
+          ]
+          regex  = "kube-system;kube-dns;metrics"
+          action = "keep"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "coredns"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+      }
+
+      prometheus.scrape "coredns" {
+        targets         = discovery.relabel.coredns.output
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      // components bound to localhost on the control-plane node this Alloy runs on
+      discovery.relabel "control_plane_node" {
+        targets = discovery.kubernetes.nodes.targets
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_node_labelpresent_node_role_kubernetes_io_control_plane"]
+          regex         = "true"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      discovery.relabel "etcd" {
+        targets = discovery.relabel.control_plane_node.output
+        rule {
+          target_label = "__address__"
+          replacement  = "127.0.0.1:2381"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "etcd"
+        }
+      }
+
+      prometheus.scrape "etcd" {
+        targets         = discovery.relabel.etcd.output
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      discovery.relabel "kube_controller_manager" {
+        targets = discovery.relabel.control_plane_node.output
+        rule {
+          target_label = "__address__"
+          replacement  = "127.0.0.1:10257"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "kube-controller-manager"
+        }
+      }
+
+      prometheus.scrape "kube_controller_manager" {
+        targets           = discovery.relabel.kube_controller_manager.output
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      discovery.relabel "kube_scheduler" {
+        targets = discovery.relabel.control_plane_node.output
+        rule {
+          target_label = "__address__"
+          replacement  = "127.0.0.1:10259"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "kube-scheduler"
+        }
+      }
+
+      prometheus.scrape "kube_scheduler" {
+        targets           = discovery.relabel.kube_scheduler.output
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      discovery.relabel "kube_proxy" {
+        targets = discovery.relabel.kubelet.output
+        rule {
+          target_label = "__address__"
+          replacement  = "127.0.0.1:10249"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "kube-proxy"
+        }
+      }
+
+      prometheus.scrape "kube_proxy" {
+        targets         = discovery.relabel.kube_proxy.output
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      prometheus.relabel "control_plane" {
+        // bounded set: enough for the API server, CoreDNS, etcd, scheduler, controller and proxy dashboards
+        // (no spaces on the regex lines: that is what keeps yamllint's line-length rule quiet)
+        rule {
+          source_labels = ["__name__"]
+          regex="up|process_(cpu_seconds_total|resident_memory_bytes|start_time_seconds)|go_goroutines|rest_client_requests_total|workqueue_(depth|adds_total|queue_duration_seconds_.*)|apiserver_(request_total|request_duration_seconds_(sum|count|bucket)|current_inflight_requests|watch_events_total|storage_objects)|etcd_.*|grpc_server_(handled|started)_total|coredns_.*|scheduler_(pending_pods|schedule_attempts_total|scheduling_attempt_duration_seconds_.*|e2e_scheduling_duration_seconds_.*)|kubeproxy_(sync_proxy_rules_duration_seconds_.*|network_programming_duration_seconds_.*)"
+          action        = "keep"
+        }
+        // the API server latency histogram is the one high-cardinality family: keep the buckets only
+        // for the resources the dashboards look at (Go regexp has no lookahead, hence two steps)
+        rule {
+          source_labels = ["__name__", "resource"]
+          regex         = "apiserver_request_duration_seconds_bucket;(pods|nodes|deployments|configmaps|secrets|leases)"
+          target_label  = "__tmp_keep_bucket"
+          replacement   = "keep"
+        }
+        rule {
+          source_labels = ["__name__", "__tmp_keep_bucket"]
+          regex         = "apiserver_request_duration_seconds_bucket;"
+          action        = "drop"
+        }
+        rule {
+          regex  = "__tmp_keep_bucket"
+          action = "labeldrop"
+        }
+        forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
       prometheus.scrape "oncall_exporter" {
         targets = [{
           "__address__" = "oncall-engine.default.svc:8080",
@@ -210,3 +383,10 @@ alloy:
 
 controller:
   type: daemonset
+  # etcd, controller-manager, scheduler and kube-proxy metrics are bound to 127.0.0.1 on each node
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule

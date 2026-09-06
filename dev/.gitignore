@@ -28,3 +28,6 @@
 !helm-kind.yml
 !observability/
 !observability/*
+!kind-cilium.yaml
+!cilium/
+!cilium/*

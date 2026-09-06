@@ -14,8 +14,27 @@ Grafana that the OnCall chart installs.
 
 What lands in Mimir, by job label: `cadvisor` (container CPU, memory, network per pod), `kubelet`
 (running pods and containers, volume usage), `kube-state-metrics` (pod phases, restarts,
-deployments, nodes, quotas), `prometheus-node-exporter` (node CPU, memory, disk, network) and
-`oncall-exporter`. Only the cAdvisor and kubelet series are filtered down; the exporters are kept whole.
+deployments, nodes, quotas), `prometheus-node-exporter` (node CPU, memory, disk, network),
+`kube-apiserver`, `coredns`, `etcd`, `kube-controller-manager`, `kube-scheduler`, `kube-proxy`
+(control plane; Alloy runs on the host network because kubeadm binds those to 127.0.0.1) and
+`oncall-exporter`. cAdvisor, kubelet and the control-plane families are filtered to what the
+dashboards use; the exporters are kept whole.
+
+## Dashboards
+
+`oncall-dashboards.yaml` provisions ready-made dashboards into the OnCall Grafana, in three folders:
+
+- **Kubernetes**: the dotdc "Kubernetes / Views" set (Global, Namespaces, Nodes, Pods) and
+  Node Exporter Full, all on Mimir.
+- **Kubernetes control plane**: API Server, CoreDNS and etcd.
+- **Logs**: "Loki Kubernetes Logs", "Logs / App", and our own
+  "Kubernetes / Control plane health and logs" (`dashboards/control-plane-logs.json`): which
+  control-plane targets are up, error and warning lines per component, and the live logs of etcd,
+  the API server, controller-manager, scheduler, CoreDNS and kube-proxy.
+
+The grafana.com dashboards are downloaded by the Grafana pod when it starts, so the cluster needs
+outbound internet for that step. Our own dashboard is shipped as the ConfigMap
+`oncall-k8s-dashboards` that `install.sh` creates from `dashboards/`.
 
 ## Run it
 
