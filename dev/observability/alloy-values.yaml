@@ -311,8 +311,23 @@ alloy:
         forward_to      = [prometheus.relabel.control_plane.receiver]
       }
 
+      // kube-proxy: only where a kube-proxy pod runs on this node (none when Cilium replaces it)
       discovery.relabel "kube_proxy" {
-        targets = discovery.relabel.kubelet.output
+        targets = discovery.kubernetes.kube_system_pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_k8s_app"]
+          regex         = "kube-proxy"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
         rule {
           target_label = "__address__"
           replacement  = "127.0.0.1:10249"
@@ -323,10 +338,120 @@ alloy:
         }
       }
 
+      // the dedicated Cilium etcd (dev/cilium/etcd.yaml), metrics on the control-plane node
+      discovery.relabel "cilium_etcd" {
+        targets = discovery.kubernetes.kube_system_pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          regex         = "cilium-etcd"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        rule {
+          target_label = "__address__"
+          replacement  = "127.0.0.1:2481"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "cilium-etcd"
+        }
+      }
+
+      prometheus.scrape "cilium_etcd" {
+        targets         = discovery.relabel.cilium_etcd.output
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
       prometheus.scrape "kube_proxy" {
         targets         = discovery.relabel.kube_proxy.output
         scrape_interval = "30s"
         forward_to      = [prometheus.relabel.control_plane.receiver]
+      }
+
+      // Cilium agent, Hubble and the Cilium operator (present when dev/cilium/install.sh built the cluster)
+      discovery.kubernetes "kube_system_pods" {
+        role = "pod"
+        namespaces {
+          names = ["kube-system"]
+        }
+      }
+
+      discovery.relabel "cilium" {
+        targets = discovery.kubernetes.kube_system_pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_k8s_app", "__meta_kubernetes_pod_container_port_name"]
+          regex         = "cilium;(prometheus|hubble-metrics)"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_port_name"]
+          regex         = "prometheus"
+          target_label  = "job"
+          replacement   = "cilium-agent"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_port_name"]
+          regex         = "hubble-metrics"
+          target_label  = "job"
+          replacement   = "hubble"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        // the labels Cilium's own dashboards select on
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_k8s_app"]
+          target_label  = "k8s_app"
+        }
+      }
+
+      discovery.relabel "cilium_operator" {
+        targets = discovery.kubernetes.kube_system_pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_io_cilium_app", "__meta_kubernetes_pod_container_port_name"]
+          regex         = "operator;prometheus"
+          action        = "keep"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "cilium-operator"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_io_cilium_app"]
+          target_label  = "io_cilium_app"
+        }
+      }
+
+      prometheus.scrape "cilium" {
+        targets         = array.concat(discovery.relabel.cilium.output, discovery.relabel.cilium_operator.output)
+        scrape_interval = "30s"
+        forward_to      = [prometheus.remote_write.mimir.receiver]
       }
 
       prometheus.relabel "control_plane" {

@@ -91,3 +91,13 @@ grafana:
   # our own dashboard (dev/observability/dashboards/*.json), shipped as a ConfigMap by install.sh
   dashboardsConfigMaps:
     control-plane-logs: oncall-k8s-dashboards
+  # dashboards that other charts ship as ConfigMaps labelled grafana_dashboard=1 (Cilium, Hubble)
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true

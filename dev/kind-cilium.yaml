@@ -1,0 +1,10 @@
+# kind cluster for the OnCall chart with Cilium as the CNI (and kube-proxy replaced by Cilium).
+# Use through dev/cilium/install.sh, which creates the cluster, the dedicated etcd and Cilium in order.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  kubeProxyMode: none
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.37.0

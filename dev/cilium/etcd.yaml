@@ -1,0 +1,109 @@
+# A dedicated etcd for Cilium's key-value store, separate from the Kubernetes etcd.
+#
+# It runs on the host network of the control-plane node because it has to be up before the CNI is,
+# and on ports 2479/2480 because the Kubernetes etcd already owns 2379/2380 on that node. Data lives
+# in /var/lib/cilium-etcd on the node. One member and no TLS: a demo layout. For production run a
+# three-member cluster with TLS and point Cilium at it with etcd.ssl=true and the cilium-etcd-secrets
+# Secret (https://docs.cilium.io/en/stable/installation/k8s-install-external-etcd/).
+apiVersion: v1
+kind: Service
+metadata:
+  name: cilium-etcd
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: cilium-etcd
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: cilium-etcd
+  ports:
+    - name: client
+      port: 2479
+    - name: peer
+      port: 2480
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cilium-etcd
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: cilium-etcd
+spec:
+  serviceName: cilium-etcd
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cilium-etcd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cilium-etcd
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-cluster-critical
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/network-unavailable
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: etcd
+          image: quay.io/coreos/etcd:v3.6.7
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          command:
+            - /usr/local/bin/etcd
+            - --name=cilium-etcd-0
+            - --data-dir=/var/lib/etcd
+            - --listen-client-urls=http://0.0.0.0:2479
+            - --advertise-client-urls=http://$(NODE_IP):2479
+            - --listen-peer-urls=http://0.0.0.0:2480
+            - --initial-advertise-peer-urls=http://$(NODE_IP):2480
+            - --initial-cluster=cilium-etcd-0=http://$(NODE_IP):2480
+            - --initial-cluster-state=new
+            - --listen-metrics-urls=http://0.0.0.0:2481
+            - --auto-compaction-retention=1h
+            - --quota-backend-bytes=2147483648
+          ports:
+            - name: client
+              containerPort: 2479
+            - name: peer
+              containerPort: 2480
+            - name: metrics
+              containerPort: 2481
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 2481
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 2481
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/etcd
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/cilium-etcd
+            type: DirectoryOrCreate

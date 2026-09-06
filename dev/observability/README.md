@@ -34,7 +34,10 @@ dashboards use; the exporters are kept whole.
 
 The grafana.com dashboards are downloaded by the Grafana pod when it starts, so the cluster needs
 outbound internet for that step. Our own dashboard is shipped as the ConfigMap
-`oncall-k8s-dashboards` that `install.sh` creates from `dashboards/`.
+`oncall-k8s-dashboards` that `install.sh` creates from `dashboards/`. A Grafana sidecar also picks
+up any ConfigMap labelled `grafana_dashboard=1` in any namespace, which is how the Cilium, Hubble
+and Cilium operator dashboards appear in a **Cilium** folder when the cluster was built with
+`dev/cilium/install.sh`.
 
 ## Run it
 
