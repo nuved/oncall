@@ -32,8 +32,11 @@ helm upgrade --install alloy grafana/alloy --version "$ALLOY_CHART_VERSION" \
   --kube-context "$CTX" --namespace "$NS" -f "$HERE/alloy-values.yaml" --wait --timeout 5m
 
 echo ">> our dashboards as a ConfigMap (namespace of the $RELEASE release)"
-RELEASE_NS=$(helm status "$RELEASE" --kube-context "$CTX" -o json |
-  python3 -c 'import sys,json; print(json.load(sys.stdin)["namespace"])')
+RELEASE_NS=$(helm list --all-namespaces --kube-context "$CTX" -o json | python3 -c '
+import sys, json
+release = sys.argv[1]
+print(next((x["namespace"] for x in json.load(sys.stdin) if x["name"] == release), ""))' "$RELEASE")
+[ -n "$RELEASE_NS" ] || { echo "release $RELEASE not found in any namespace of $CTX" >&2; exit 1; }
 kubectl --context "$CTX" -n "$RELEASE_NS" create configmap oncall-k8s-dashboards \
   --from-file="$HERE/dashboards" --dry-run=client -o yaml | kubectl --context "$CTX" apply -f -
 
