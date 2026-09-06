@@ -18,7 +18,10 @@ telegramPolling.enabled=true -> should create telegram polling deployment:
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH

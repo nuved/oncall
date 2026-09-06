@@ -18,7 +18,10 @@ database.type=mysql -> should create initContainer for MySQL database (default):
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH
@@ -106,7 +109,10 @@ database.type=mysql -> should create initContainer for MySQL database (default):
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH
@@ -194,7 +200,10 @@ database.type=mysql -> should create initContainer for MySQL database (default):
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH
@@ -283,7 +292,10 @@ database.type=postgresql -> should create initContainer for PostgreSQL database:
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH
@@ -373,7 +385,10 @@ database.type=postgresql -> should create initContainer for PostgreSQL database:
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH
@@ -463,7 +478,10 @@ database.type=postgresql -> should create initContainer for PostgreSQL database:
               key: MIRAGE_SECRET_KEY
               name: oncall
         - name: MIRAGE_CIPHER_IV
-          value: 1234567890abcdef
+          valueFrom:
+            secretKeyRef:
+              key: MIRAGE_CIPHER_IV
+              name: oncall
         - name: DJANGO_SETTINGS_MODULE
           value: settings.helm
         - name: AMIXR_DJANGO_ADMIN_PATH

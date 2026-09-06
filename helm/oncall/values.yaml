@@ -297,17 +297,26 @@ oncall:
     image: curlimages/curl:8.14.1
     backoffLimit: 3
 
-  # Override default MIRAGE_CIPHER_IV (must be 16 bytes long)
-  # For existing installation, this should not be changed.
-  # mirageCipherIV: 1234567890abcdef
+  # MIRAGE_CIPHER_IV, the AES-CBC initialisation vector django-mirage-field uses for the encrypted
+  # columns (organization API tokens, webhook credentials, Google OAuth tokens). Must be exactly
+  # 16 characters. Leave empty and the chart generates one on first install and stores it in the
+  # chart-owned secret, reusing it on every later upgrade.
+  # For an existing installation this must NOT be changed: a different IV makes already-encrypted
+  # rows decrypt to garbage, and mirage swallows the error instead of raising, so nothing warns you.
+  mirageCipherIV: ""
   # oncall secrets
   secrets:
     # Use existing secret. (secretKey and mirageSecretKey is required)
+    # Recommended for production: the chart then generates nothing and you rotate on your own terms.
     existingSecret: ""
     # The key in the secret containing secret key
     secretKey: ""
     # The key in the secret containing mirage secret key
     mirageSecretKey: ""
+    # The key in the existing secret containing the mirage cipher IV. Optional. When empty and
+    # existingSecret is set, MIRAGE_CIPHER_IV is passed as a plain env var taken from
+    # oncall.mirageCipherIV above, which is how releases predating this option behave.
+    mirageCipherIVKey: ""
   # Slack configures the Grafana Oncall Slack ChatOps integration.
   slack:
     # Enable the Slack ChatOps integration for the Oncall Engine.

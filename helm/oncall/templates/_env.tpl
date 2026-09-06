@@ -11,8 +11,7 @@
     secretKeyRef:
       name: {{ include "snippet.oncall.secret.name" . }}
       key: {{ include "snippet.oncall.secret.mirageSecretKey" . | quote }}
-- name: MIRAGE_CIPHER_IV
-  value: {{ .Values.oncall.mirageCipherIV | default "1234567890abcdef" | quote }}
+{{- include "snippet.oncall.mirageCipherIV.env" . }}
 - name: DJANGO_SETTINGS_MODULE
   value: "settings.helm"
 - name: AMIXR_DJANGO_ADMIN_PATH
@@ -50,6 +49,58 @@
 {{- else -}}
   MIRAGE_SECRET_KEY
 {{- end }}
+{{- end }}
+
+{{/*
+MIRAGE_CIPHER_IV is stored in the chart-owned secret so that it stays stable across upgrades (see
+templates/secrets.yaml). With oncall.secrets.existingSecret the chart owns nothing, so the IV comes
+from that secret only when oncall.secrets.mirageCipherIVKey names a key in it; otherwise it is
+passed as a plain value, which is what releases predating this change already do.
+*/}}
+{{- define "snippet.oncall.mirageCipherIV.env" -}}
+{{- if and .Values.oncall.secrets.existingSecret (not .Values.oncall.secrets.mirageCipherIVKey) }}
+- name: MIRAGE_CIPHER_IV
+  value: {{ include "snippet.oncall.mirageCipherIV.value" . | quote }}
+{{- else }}
+- name: MIRAGE_CIPHER_IV
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "snippet.oncall.secret.name" . }}
+      key: {{ include "snippet.oncall.secret.mirageCipherIV" . | quote }}
+{{- end }}
+{{- end }}
+
+{{- define "snippet.oncall.secret.mirageCipherIV" -}}
+{{ if .Values.oncall.secrets.existingSecret -}}
+  {{ required "oncall.secrets.mirageCipherIVKey is required if oncall.secrets.existingSecret is not empty and the cipher IV is read from it" .Values.oncall.secrets.mirageCipherIVKey }}
+{{- else -}}
+  MIRAGE_CIPHER_IV
+{{- end }}
+{{- end }}
+
+{{/*
+Plain MIRAGE_CIPHER_IV value, only used on the existingSecret path that predates the IV living in a
+secret. Falls back to the historical default so those releases keep decrypting their own data.
+*/}}
+{{- define "snippet.oncall.mirageCipherIV.value" -}}
+{{- $iv := .Values.oncall.mirageCipherIV | default "1234567890abcdef" | toString -}}
+{{- include "snippet.oncall.mirageCipherIV.validate" $iv -}}
+{{- $iv -}}
+{{- end }}
+
+{{/*
+AES-CBC takes an IV of exactly one block, 16 bytes. A wrong length makes the engine raise
+"Invalid IV size (N) for CBC" at runtime, so reject it while rendering instead.
+
+An all-digit IV written unquoted in values.yaml is parsed as a number and stringifies to
+scientific notation, so it never round-trips to 16 characters. That is caught here rather than
+shipped as a silently broken IV, and the message says to quote it.
+*/}}
+{{- define "snippet.oncall.mirageCipherIV.validate" -}}
+{{- $iv := toString . -}}
+{{- if ne (len $iv) 16 -}}
+{{- fail (printf "oncall.mirageCipherIV must be exactly 16 characters long (AES-CBC IV size), got %d (%q). Quote the value in values.yaml if it is all digits." (len $iv) $iv) -}}
+{{- end -}}
 {{- end }}
 
 {{- define "snippet.oncall.uwsgi" -}}

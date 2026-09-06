@@ -1,0 +1,67 @@
+suite: test MIRAGE_CIPHER_IV env wiring for deployments
+templates:
+  - engine/deployment.yaml
+release:
+  name: oncall
+tests:
+  - it: reads the cipher IV from the chart-owned secret by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MIRAGE_CIPHER_IV
+            valueFrom:
+              secretKeyRef:
+                name: oncall
+                key: MIRAGE_CIPHER_IV
+  - it: never renders the cipher IV as a plain literal when the chart owns the secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MIRAGE_CIPHER_IV
+            value: "1234567890abcdef"
+  - it: reads the cipher IV from an existing secret when mirageCipherIVKey is given
+    set:
+      oncall.secrets:
+        existingSecret: my-oncall-secret
+        secretKey: my-secret-key
+        mirageSecretKey: my-mirage-secret-key
+        mirageCipherIVKey: my-mirage-cipher-iv
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MIRAGE_CIPHER_IV
+            valueFrom:
+              secretKeyRef:
+                name: my-oncall-secret
+                key: my-mirage-cipher-iv
+  # Releases created before the IV moved into a secret set it as a plain env var. Keep that path
+  # working, otherwise upgrading an existingSecret install would change the IV and silently
+  # corrupt every mirage-encrypted column.
+  - it: keeps the plain cipher IV value for existingSecret installs without mirageCipherIVKey
+    set:
+      oncall.secrets:
+        existingSecret: my-oncall-secret
+        secretKey: my-secret-key
+        mirageSecretKey: my-mirage-secret-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MIRAGE_CIPHER_IV
+            value: "1234567890abcdef"
+  - it: honours an explicit cipher IV for existingSecret installs
+    set:
+      oncall.mirageCipherIV: "0123456789abcdef"
+      oncall.secrets:
+        existingSecret: my-oncall-secret
+        secretKey: my-secret-key
+        mirageSecretKey: my-mirage-secret-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MIRAGE_CIPHER_IV
+            value: "0123456789abcdef"

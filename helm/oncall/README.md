@@ -192,6 +192,53 @@ externalRedis:
   passwordKey: ""
 ```
 
+### OnCall's own secrets
+
+Apart from the dependent charts, the chart owns one secret of its own, named after the release
+(`<release>-oncall`), holding three values the engine needs:
+
+- `SECRET_KEY` - Django's signing key. Changing it invalidates every active session.
+- `MIRAGE_SECRET_KEY` - the key `django-mirage-field` encrypts sensitive columns with (organization
+  API tokens, webhook credentials, Google OAuth tokens).
+- `MIRAGE_CIPHER_IV` - the AES-CBC initialisation vector for those same columns. Exactly 16 characters.
+
+Leave `oncall.secrets.secretKey`, `oncall.secrets.mirageSecretKey` and `oncall.mirageCipherIV` empty
+and the chart generates all three on first install (50, 40 and 16 characters respectively). Every
+later `helm upgrade` looks the secret up in the release namespace and reuses the stored values, so
+they stay stable. Setting any of them explicitly wins over both generation and reuse.
+
+Keeping `MIRAGE_SECRET_KEY` and `MIRAGE_CIPHER_IV` stable is a data-integrity requirement rather than
+a convenience: columns encrypted under the old pair decrypt to garbage under a new one, and
+`django-mirage-field` returns that garbage instead of raising, so nothing tells you it happened.
+
+`helm template` and `helm lint` have no API server to query, so the lookup finds nothing there and
+the rendered manifest shows freshly generated values on every run. That is expected, and it does not
+mean `helm install` or `helm upgrade` will rotate them.
+
+For production, prefer supplying the secret yourself with `oncall.secrets.existingSecret`. The chart
+then generates nothing and rotation stays under your control.
+
+```yaml
+oncall:
+  # Must be exactly 16 characters. Empty = generated on first install, reused afterwards.
+  mirageCipherIV: ""
+  secrets:
+    # Secret name: `<release>-oncall`
+    # Keys: SECRET_KEY, MIRAGE_SECRET_KEY, MIRAGE_CIPHER_IV
+    existingSecret: ""
+    secretKey: ""
+    mirageSecretKey: ""
+    mirageCipherIVKey: ""
+```
+
+With `existingSecret` set, `secretKey` and `mirageSecretKey` name the keys to read from it and are
+required. `mirageCipherIVKey` is optional: leave it empty and `MIRAGE_CIPHER_IV` is passed as a plain
+environment variable taken from `oncall.mirageCipherIV`, which is how releases predating that option
+already behave.
+
+Upgrading a release created before the IV moved into the secret keeps the previous built-in value
+(`1234567890abcdef`) instead of generating a new one, so data encrypted under it stays readable.
+
 ### Running split ingestion and API services
 
 You can run a detached service for handling integrations by setting up the following variables:
