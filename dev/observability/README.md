@@ -6,10 +6,16 @@ Grafana that the OnCall chart installs.
 
 ```text
  pods (all namespaces) --logs--> Alloy (DaemonSet) --push--> Loki (single binary, local disk)
- kubelet cAdvisor      --------> Alloy            --remote_write--> Mimir (single process, local disk)
+ kubelet + cAdvisor    --------> Alloy            --remote_write--> Mimir (single process, local disk)
+ kube-state-metrics, node-exporter (from the OnCall chart's prometheus subchart) --> Alloy --> Mimir
  OnCall engine /metrics/ ------> Alloy            --remote_write--> Mimir
  Grafana (OnCall release) --datasources--> Loki, Mimir, and the chart's own Prometheus
 ```
+
+What lands in Mimir, by job label: `cadvisor` (container CPU, memory, network per pod), `kubelet`
+(running pods and containers, volume usage), `kube-state-metrics` (pod phases, restarts,
+deployments, nodes, quotas), `prometheus-node-exporter` (node CPU, memory, disk, network) and
+`oncall-exporter`. Only the cAdvisor and kubelet series are filtered down; the exporters are kept whole.
 
 ## Run it
 

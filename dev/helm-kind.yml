@@ -70,10 +70,12 @@ prometheus:
   enabled: true
   alertmanager:
     enabled: false
+  # cluster-level metrics (pod phases, deployments, node CPU/memory/disk); also scraped by Alloy
+  # into Mimir when dev/observability is installed
   kube-state-metrics:
-    enabled: false
+    enabled: true
   prometheus-node-exporter:
-    enabled: false
+    enabled: true
   prometheus-pushgateway:
     enabled: false
   server:

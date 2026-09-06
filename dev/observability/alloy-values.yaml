@@ -102,7 +102,7 @@ alloy:
         // keep the container-level series that dashboards actually use
         rule {
           source_labels = ["__name__"]
-          regex = "container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total)"
+          regex = "up|container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total)"
           action = "keep"
         }
         rule {
@@ -111,6 +111,68 @@ alloy:
           action        = "drop"
         }
         forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
+      // kubelet itself (pod/volume counters) on this node
+      discovery.relabel "kubelet" {
+        targets = discovery.kubernetes.nodes.targets
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          regex         = sys.env("HOSTNAME_NODE")
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      prometheus.scrape "kubelet" {
+        targets           = discovery.relabel.kubelet.output
+        scheme            = "https"
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        tls_config {
+          insecure_skip_verify = true
+        }
+        scrape_interval = "30s"
+        forward_to      = [prometheus.relabel.kubelet.receiver]
+      }
+
+      prometheus.relabel "kubelet" {
+        rule {
+          source_labels = ["__name__"]
+          regex         = "up|kubelet_(running_pods|running_containers|node_name|volume_stats_.*)"
+          action        = "keep"
+        }
+        forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
+      // kube-state-metrics and node-exporter (installed by the OnCall chart's prometheus subchart)
+      discovery.kubernetes "endpoints" {
+        role = "endpoints"
+      }
+
+      discovery.relabel "cluster_exporters" {
+        targets = discovery.kubernetes.endpoints.targets
+        rule {
+          source_labels = ["__meta_kubernetes_service_label_app_kubernetes_io_name"]
+          regex         = "kube-state-metrics|prometheus-node-exporter"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_service_label_app_kubernetes_io_name"]
+          target_label  = "job"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      prometheus.scrape "cluster_exporters" {
+        targets         = discovery.relabel.cluster_exporters.output
+        scrape_interval = "30s"
+        forward_to      = [prometheus.remote_write.mimir.receiver]
       }
 
       prometheus.scrape "oncall_exporter" {
