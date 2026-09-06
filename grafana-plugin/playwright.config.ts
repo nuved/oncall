@@ -38,14 +38,17 @@ export default defineConfig({
     ['list', { printSteps: true }],
   ],
 
-  /* Maximum time one test can run for. Genuinely slow tests opt out with test.slow(). */
-  timeout: 30_000,
+  /**
+   * Maximum time one test can run for. Genuinely slow tests opt out with test.slow().
+   * CI runs Grafana and OnCall inside kind on a 2-core runner, so everything gets more headroom there.
+   */
+  timeout: IS_CI ? 60_000 : 30_000,
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 5_000,
+    timeout: IS_CI ? 10_000 : 5_000,
   },
   /* Run tests in files in parallel */
   fullyParallel: false,
@@ -58,15 +61,16 @@ export default defineConfig({
    * to flaky tests.. let's allow 1 retry per test
    */
   retries: 1,
-  workers: 4,
+  /* four browsers on the shared 2-core CI runner starve Grafana and turn passing tests into timeouts */
+  workers: IS_CI ? 2 : 4,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /**
      * Maximum time each action such as `click()` can take. Without a limit, an element that
      * never becomes actionable burns the whole test timeout instead of failing where it broke.
      */
-    actionTimeout: 10_000,
-    navigationTimeout: 15_000,
+    actionTimeout: IS_CI ? 15_000 : 10_000,
+    navigationTimeout: IS_CI ? 30_000 : 15_000,
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
 
