@@ -571,6 +571,13 @@ externalMysql:
 # Set postgresql.enabled = false and configure externalPostgresql
 postgresql:
   enabled: false
+  image:
+    # The subchart's default, docker.io/bitnami/postgresql:14.5.0-debian-11-r30, was removed from
+    # Docker Hub when Bitnami retired its free catalog; bitnamilegacy keeps the last published tags
+    # (frozen, no further updates). Moving to a maintained image is backlog T-27.
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 16.6.0-debian-12-r2
   auth:
     database: oncall
     existingSecret:

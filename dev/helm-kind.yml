@@ -44,15 +44,30 @@ redis:
   master:
     disableCommands: []
 
+# PostgreSQL instead of the chart's MariaDB default: the engine's migrations warn that MariaDB
+# cannot create a unique constraint on an expression (alerts.AlertReceiveChannel, W044), so that
+# integrity rule silently does not exist on MariaDB. PostgreSQL has it.
+# Enabling the subchart on an already installed release: Bitnami charts refuse to generate a
+# password during an upgrade, so create the secret first, with the ownership metadata Helm needs
+# to adopt it (fresh installs generate the secret themselves):
+#   kubectl create secret generic <release>-postgresql \
+#     --from-literal=postgres-password=$(openssl rand -hex 16) --from-literal=password=$(openssl rand -hex 16)
+#   kubectl label secret <release>-postgresql app.kubernetes.io/managed-by=Helm
+#   kubectl annotate secret <release>-postgresql meta.helm.sh/release-name=<release> \
+#     meta.helm.sh/release-namespace=<namespace>
+database:
+  type: postgresql
 mariadb:
+  enabled: false
+postgresql:
+  enabled: true
   primary:
-    extraEnvVars:
-      - name: MARIADB_EXTRA_FLAGS
-        value: "--max_allowed_packet=134217728 --max_connections=1024"
-      - name: MARIADB_CHARACTER_SET
-        value: utf8mb4
-      - name: MARIADB_COLLATE
-        value: utf8mb4_unicode_ci
+    persistence:
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
 
 ingress:
   enabled: false
