@@ -31,3 +31,4 @@
 !kind-cilium.yaml
 !cilium/
 !cilium/*
+!deploy-all.sh
