@@ -19,13 +19,18 @@ set -eu
 ENV_FILE="./.env"
 FORCE=0
 DEMO=0
+ROTATE_ENCRYPTION=0
 
 usage() {
 	cat <<'USAGE'
 Usage: init-env.sh [--force] [--demo]
 
   --force   overwrite an existing .env (the old file is backed up to
-            .env.bak.<timestamp>)
+            .env.bak.<timestamp>); MIRAGE_SECRET_KEY and MIRAGE_CIPHER_IV
+            are kept because rotating them makes encrypted rows unreadable
+  --rotate-encryption-keys
+            with --force, also replace MIRAGE_SECRET_KEY and MIRAGE_CIPHER_IV
+            (only for an installation without data)
   --demo    additionally generate DEMO_USERS_PASSWORD for demo accounts
   -h        show this help
 
@@ -37,6 +42,7 @@ USAGE
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--force) FORCE=1 ;;
+	--rotate-encryption-keys) ROTATE_ENCRYPTION=1 ;;
 	--demo) DEMO=1 ;;
 	-h | --help)
 		usage
@@ -95,6 +101,18 @@ random_alnum() {
 SECRET_KEY="$(random_alnum 64)"
 MIRAGE_SECRET_KEY="$(random_alnum 40)"
 MIRAGE_CIPHER_IV="$(random_alnum 16)"
+# The encryption key and IV protect rows already stored in the database (Slack tokens, webhook
+# credentials). Rotating them makes those rows unreadable, so --force keeps the existing values
+# unless --rotate-encryption-keys is given as well.
+if [ -e "$ENV_FILE" ] && [ "$ROTATE_ENCRYPTION" -eq 0 ]; then
+	_old_key="$(sed -n 's/^MIRAGE_SECRET_KEY=//p' "$ENV_FILE" | head -n 1)"
+	_old_iv="$(sed -n 's/^MIRAGE_CIPHER_IV=//p' "$ENV_FILE" | head -n 1)"
+	if [ -n "$_old_key" ] && [ -n "$_old_iv" ]; then
+		MIRAGE_SECRET_KEY="$_old_key"
+		MIRAGE_CIPHER_IV="$_old_iv"
+		printf 'Kept MIRAGE_SECRET_KEY and MIRAGE_CIPHER_IV from the existing file (pass --rotate-encryption-keys to replace them).\n'
+	fi
+fi
 MYSQL_PASSWORD="$(random_alnum 32)"
 # The bundled MySQL is reached as root (MYSQL_USER defaults to root), and the
 # healthcheck plus the Grafana database user both authenticate with
@@ -106,6 +124,7 @@ GRAFANA_USER="admin"
 
 if [ -e "$ENV_FILE" ]; then
 	BACKUP="$ENV_FILE.bak.$(date +%Y%m%d%H%M%S)"
+	while [ -e "$BACKUP" ]; do BACKUP="$BACKUP.1"; done
 	cp "$ENV_FILE" "$BACKUP"
 	chmod 600 "$BACKUP"
 	printf 'Backed up the existing .env to %s\n' "$BACKUP"

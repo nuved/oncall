@@ -178,10 +178,12 @@ generated `.env`, then create a `prometheus.yml` file (using the same token in p
    `scripts/init-env.sh` printed in step 2. It stays available in `.env` as `GRAFANA_ADMIN_PASSWORD`.
 
    To rotate the credentials, run `./scripts/init-env.sh --force` (the previous file is kept as
-   `.env.bak.<timestamp>`) and restart the stack. Two caveats on an installation that already has data:
-   Grafana only applies `GF_SECURITY_ADMIN_PASSWORD` when it initialises its database, so change the
-   admin password in the Grafana UI as well, and a new `SECRET_KEY` invalidates existing sessions,
-   tokens and anything the engine has already encrypted.
+   `.env.bak.<timestamp>`) and restart the stack. The encryption key and IV (`MIRAGE_SECRET_KEY`,
+   `MIRAGE_CIPHER_IV`) are kept on purpose: changing them makes every token the engine has already
+   encrypted unreadable, so only pass `--rotate-encryption-keys` on an installation without data.
+   Two more caveats on an installation that already has data: Grafana only applies
+   `GF_SECURITY_ADMIN_PASSWORD` when it initialises its database, so change the admin password in
+   the Grafana UI as well, and a new `SECRET_KEY` invalidates existing sessions and tokens.
 
 7. Enjoy! Check our [OSS docs](https://grafana.com/docs/oncall/latest/open-source/) if you want to set up
    Slack, Telegram, Twilio or SMS/calls through Grafana Cloud.
