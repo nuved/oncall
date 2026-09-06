@@ -215,6 +215,9 @@ def test_list_users_to_notify_from_ical_until_terminated_event(
 
     schedule = make_schedule(organization, schedule_class=OnCallScheduleWeb)
     date = timezone.now().replace(microsecond=0)
+    # a weekday that is never today, so the shift cannot fall inside the 8-hour window regardless of
+    # which day the test runs on (a fixed "SU" put a real shift on the calendar every Sunday)
+    by_day = CustomOnCallShift.ICAL_WEEKDAY_MAP[(date.weekday() + 2) % 7]
 
     data = {
         "start": date,
@@ -222,7 +225,7 @@ def test_list_users_to_notify_from_ical_until_terminated_event(
         "rotation_start": date + timezone.timedelta(days=3),
         "priority_level": 1,
         "frequency": CustomOnCallShift.FREQUENCY_DAILY,
-        "by_day": ["SU"],
+        "by_day": [by_day],
         "interval": 1,
         "until": date + timezone.timedelta(hours=8),
         "schedule": schedule,
