@@ -37,6 +37,17 @@ make test               # engine pytest suite inside the running oncall_engine c
 make install-git-hooks  # run `make unit-test` automatically before every `git push`
 ```
 
+Against a running stack, [`tools/smoke/smoke_test.py`](tools/smoke/smoke_test.py) drives every user-facing flow through the
+plugin API and the public API: plugin connection and user sync, a Grafana Alerting integration with a contact point
+created through Grafana's provisioning API, a real Grafana alert rule firing into OnCall, webhook ingestion, the alert
+group lifecycle, an escalation chain, a schedule with a rotation, public API tokens and direct paging, an outgoing
+webhook and the metrics endpoint. It cleans up what it created in Grafana and exits non-zero on any failure.
+
+```bash
+# engine reachable from Grafana's container as BASE_URL, e.g. http://host.docker.internal:8081 in the dev stack
+ENGINE_URL_INTERNAL=http://host.docker.internal:8081 python3 tools/smoke/smoke_test.py
+```
+
 ## Releasing
 
 Push an annotated tag; its message is the release codename:
