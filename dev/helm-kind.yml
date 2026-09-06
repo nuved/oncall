@@ -1,0 +1,89 @@
+# Values for installing the released chart on a small kind cluster (one node, laptop-sized).
+#
+#   kind create cluster --name oncall --image kindest/node:v1.37.0
+#   helm install oncall ./helm/oncall -f dev/helm-kind.yml --wait --timeout 15m
+#   kubectl port-forward svc/oncall-grafana 3001:80   # then open http://localhost:3001 (admin / see below)
+#   kubectl get secret oncall-grafana -o jsonpath='{.data.admin-password}' | base64 -d
+#
+# Differences from the chart defaults: no ingress, ingress-nginx or cert-manager (port-forward instead),
+# Redis as the Celery broker instead of RabbitMQ, one replica of everything, and Prometheus enabled with a
+# scrape job for the OnCall exporter so the Insights dashboard has data.
+base_url: oncall-engine:8080
+base_url_protocol: http
+
+env:
+  - name: GRAFANA_CLOUD_NOTIFICATIONS_ENABLED
+    value: "False"
+
+oncall:
+  # the chart renders FEATURE_PROMETHEUS_EXPORTER_ENABLED itself; adding it under env: as well makes
+  # Helm 4 (server-side apply) reject the Deployment for a duplicate env key
+  exporter:
+    enabled: true
+
+engine:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+celery:
+  replicaCount: 1
+  worker_beat_enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+
+broker:
+  type: redis
+rabbitmq:
+  enabled: false
+redis:
+  architecture: standalone
+  master:
+    disableCommands: []
+
+mariadb:
+  primary:
+    extraEnvVars:
+      - name: MARIADB_EXTRA_FLAGS
+        value: "--max_allowed_packet=134217728 --max_connections=1024"
+      - name: MARIADB_CHARACTER_SET
+        value: utf8mb4
+      - name: MARIADB_COLLATE
+        value: utf8mb4_unicode_ci
+
+ingress:
+  enabled: false
+ingress-nginx:
+  enabled: false
+cert-manager:
+  enabled: false
+
+grafana:
+  replicas: 1
+  service:
+    type: ClusterIP
+
+prometheus:
+  enabled: true
+  alertmanager:
+    enabled: false
+  kube-state-metrics:
+    enabled: false
+  prometheus-node-exporter:
+    enabled: false
+  prometheus-pushgateway:
+    enabled: false
+  server:
+    persistentVolume:
+      enabled: false
+    global:
+      scrape_interval: 15s
+  extraScrapeConfigs: |
+    - job_name: oncall-exporter
+      metrics_path: /metrics/
+      static_configs:
+        - targets:
+            - oncall-engine.default.svc.cluster.local:8080
